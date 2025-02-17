@@ -29,6 +29,9 @@ hs_err_pid*
 .gradle/
 build/
 
+# Don't ignore Gradle wrapper jar file
+!gradle-wrapper.jar
+
 # Ignore Maven target folder
 target/
 

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.MountableFile;
@@ -13,6 +14,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Properties;
 
 
@@ -41,13 +43,10 @@ public class CodeAnalyzerIntegrationTest {
     }
 
     @Container
-    static final GenericContainer<?> container = new GenericContainer<>("openjdk:17-jdk")
+    static final GenericContainer<?> container = new GenericContainer<>("ubuntu:latest")
             .withCreateContainerCmdModifier(cmd -> cmd.withEntrypoint("sh"))
             .withCommand("-c", "while true; do sleep 1; done")
-            .withFileSystemBind(
-                    String.valueOf(Paths.get(System.getProperty("user.dir")).resolve("build/libs")),
-                    "/opt/jars",
-                    BindMode.READ_WRITE)
+            .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("build/libs")), "/opt/jars")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("build/libs")), "/opt/jars")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/mvnw-corrupt-test")), "/test-applications/mvnw-corrupt-test")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/plantsbywebsphere")), "/test-applications/plantsbywebsphere")
@@ -107,6 +106,10 @@ public class CodeAnalyzerIntegrationTest {
 
     @Test
     void callGraphShouldHaveKnownEdges() throws Exception {
+        var listContentsOfTestApplicationDirectory = container.execInContainer("ls", "/test-applications/call-graph-test");
+        Assertions.assertFalse(listContentsOfTestApplicationDirectory.getStdout().isEmpty(), "Directory listing should not be empty");
+        var runGradlew = container.execInContainer("sh", "-c", "/test-applications/call-graph-test/gradlew", "-v");
+        Assertions.assertEquals(0, runGradlew.getExitCode(), "Failed to run gradlew");
         var runCodeAnalyzerOnCallGraphTest = container.withWorkingDirectory("/test-applications/call-graph-test")
                 .execInContainer(
                 "java",
@@ -177,6 +180,10 @@ public class CodeAnalyzerIntegrationTest {
 
     @Test
     void shouldBeAbleToDetectCRUDOperationsAndQueriesForPlantByWebsphere() throws Exception {
+        container.execInContainer("apt-get", "update");
+        var installFindUtils = container.execInContainer("apt-get", "install", "-y", "openjdk-17-jdk", "findutils");
+        var printJavaVersion = container.execInContainer("java", "-version");
+        var printGradleVersion = container.execInContainer("/test-applications/plantsbywebsphere/gradlew", "-v");
         var runCodeAnalyzerOnPlantsByWebsphere = container.execInContainer(
                 "java",
                 "-jar",
