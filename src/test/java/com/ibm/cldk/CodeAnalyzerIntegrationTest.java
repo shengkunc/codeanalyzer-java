@@ -1,5 +1,10 @@
 package com.ibm.cldk;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import org.json.JSONArray;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
@@ -16,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Properties;
+import java.util.stream.StreamSupport;
 
 
 @Testcontainers
@@ -27,7 +33,7 @@ public class CodeAnalyzerIntegrationTest {
      */
     static String codeanalyzerVersion;
     static final String javaVersion = "17";
-
+    static String javaHomePath;
     static {
         // Build project first
         try {
@@ -62,8 +68,29 @@ public class CodeAnalyzerIntegrationTest {
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/mvnw-working-test")), "/test-applications/mvnw-working-test")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/daytrader8")), "/test-applications/daytrader8");
 
+    public CodeAnalyzerIntegrationTest() throws IOException, InterruptedException {
+    }
+
     @BeforeAll
     static void setUp() {
+        // Install Java 17 in the base container
+        try {
+            container.execInContainer("apt-get", "update");
+            container.execInContainer("apt-get", "install", "-y", "openjdk-17-jdk");
+
+            // Get JAVA_HOME dynamically
+            var javaHomeResult = container.execInContainer("bash", "-c",
+                    "dirname $(dirname $(readlink -f $(which java)))"
+            );
+            javaHomePath = javaHomeResult.getStdout().trim();
+            Assertions.assertFalse(javaHomePath.isEmpty(), "Failed to determine JAVA_HOME");
+
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        // Get the version of the codeanalyzer jar
         Properties properties = new Properties();
         try (FileInputStream fis = new FileInputStream(
                 Paths.get(System.getProperty("user.dir"), "gradle.properties").toFile())) {
@@ -92,11 +119,10 @@ public class CodeAnalyzerIntegrationTest {
     @Test
     void shouldBeAbleToRunCodeAnalyzer() throws Exception {
         var runCodeAnalyzerJar = container.execInContainer(
-                "java",
-                "-jar",
-                String.format("/opt/jars/codeanalyzer-%s.jar", codeanalyzerVersion),
-                "--help"
-        );
+                "bash", "-c",
+                String.format("export JAVA_HOME=%s && java -jar /opt/jars/codeanalyzer-%s.jar --help",
+                javaHomePath, codeanalyzerVersion
+        ));
 
         Assertions.assertEquals(0, runCodeAnalyzerJar.getExitCode(),
                 "Command should execute successfully");
@@ -106,25 +132,29 @@ public class CodeAnalyzerIntegrationTest {
 
     @Test
     void callGraphShouldHaveKnownEdges() throws Exception {
-        var listContentsOfTestApplicationDirectory = container.execInContainer("ls", "/test-applications/call-graph-test");
-        Assertions.assertFalse(listContentsOfTestApplicationDirectory.getStdout().isEmpty(), "Directory listing should not be empty");
-        var runGradlew = container.execInContainer("sh", "-c", "/test-applications/call-graph-test/gradlew", "-v");
-        Assertions.assertEquals(0, runGradlew.getExitCode(), "Failed to run gradlew");
-        var runCodeAnalyzerOnCallGraphTest = container.withWorkingDirectory("/test-applications/call-graph-test")
-                .execInContainer(
-                "java",
-                "-jar",
-                String.format("/opt/jars/codeanalyzer-%s.jar", codeanalyzerVersion),
-                "--input=/test-applications/call-graph-test",
-                "--analysis-level=2",
-                "--verbose"
+        var runCodeAnalyzerOnCallGraphTest = container.execInContainer(
+                "bash", "-c",
+                String.format(
+                        "export JAVA_HOME=%s && java -jar /opt/jars/codeanalyzer-%s.jar --input=/test-applications/call-graph-test --analysis-level=2",
+                        javaHomePath, codeanalyzerVersion
+                )
         );
 
-        String output = runCodeAnalyzerOnCallGraphTest.getStdout();
 
-        // Normalize the output to ignore formatting differences
-        String normalizedOutput = output.replaceAll("\\s+", "");
+        // Read the output JSON
+        Gson gson = new Gson();
+        JsonObject jsonObject = gson.fromJson(runCodeAnalyzerOnCallGraphTest.getStdout(), JsonObject.class);
+        JsonArray systemDepGraph = jsonObject.getAsJsonArray("system_dependency_graph");
+        Assertions.assertTrue(StreamSupport.stream(systemDepGraph.spliterator(), false)
+                .map(JsonElement::getAsJsonObject)
+                .anyMatch(entry ->
+                        "CALL_DEP".equals(entry.get("type").getAsString()) &&
+                                "1".equals(entry.get("weight").getAsString()) &&
+                                entry.getAsJsonObject("source").get("signature").getAsString().equals("helloString()") &&
+                                entry.getAsJsonObject("target").get("signature").getAsString().equals("log()")
+                ), "Expected edge not found in the system dependency graph");
     }
+
     @Test
     void corruptMavenShouldNotBuildWithWrapper() throws IOException, InterruptedException {
         // Make executable
@@ -152,15 +182,15 @@ public class CodeAnalyzerIntegrationTest {
 
     @Test
     void corruptMavenShouldNotTerminateWithErrorWhenMavenIsNotPresentUnlessAnalysisLevel2() throws IOException, InterruptedException {
-        // When javaee level 2, we should get a Runtime Exception
+        // When analysis level 2, we should get a Runtime Exception
         var runCodeAnalyzer = container.execInContainer(
-                "java",
-                "-jar",
-                String.format("/opt/jars/codeanalyzer-%s.jar", codeanalyzerVersion),
-                "--input=/test-applications/mvnw-corrupt-test",
-                "--output=/tmp/",
-                "--analysis-level=2"
+                "bash", "-c",
+                String.format(
+                        "export JAVA_HOME=%s && java -jar /opt/jars/codeanalyzer-%s.jar --input=/test-applications/mvnw-corrupt-test --output=/tmp/ --analysis-level=2",
+                        javaHomePath, codeanalyzerVersion
+                )
         );
+
         Assertions.assertEquals(1, runCodeAnalyzer.getExitCode());
         Assertions.assertTrue(runCodeAnalyzer.getStderr().contains("java.lang.RuntimeException"));
     }
@@ -168,29 +198,27 @@ public class CodeAnalyzerIntegrationTest {
     @Test
     void shouldBeAbleToGenerateAnalysisArtifactForDaytrader8() throws Exception {
         var runCodeAnalyzerOnDaytrader8 = mavenContainer.execInContainer(
-                "java",
-                "-jar",
-                String.format("/opt/jars/codeanalyzer-%s.jar", codeanalyzerVersion),
-                "--input=/test-applications/daytrader8",
-                "--analysis-level=1"
+                "bash", "-c",
+                String.format(
+                        "export JAVA_HOME=%s && java -jar /opt/jars/codeanalyzer-%s.jar --input=/test-applications/daytrader8 --analysis-level=1",
+                        javaHomePath, codeanalyzerVersion
+                )
         );
+
         Assertions.assertTrue(runCodeAnalyzerOnDaytrader8.getStdout().contains("\"is_entrypoint_class\": true"), "No entry point classes found");
         Assertions.assertTrue(runCodeAnalyzerOnDaytrader8.getStdout().contains("\"is_entrypoint\": true"), "No entry point methods found");
     }
 
     @Test
     void shouldBeAbleToDetectCRUDOperationsAndQueriesForPlantByWebsphere() throws Exception {
-        container.execInContainer("apt-get", "update");
-        var installFindUtils = container.execInContainer("apt-get", "install", "-y", "openjdk-17-jdk", "findutils");
-        var printJavaVersion = container.execInContainer("java", "-version");
-        var printGradleVersion = container.execInContainer("/test-applications/plantsbywebsphere/gradlew", "-v");
         var runCodeAnalyzerOnPlantsByWebsphere = container.execInContainer(
-                "java",
-                "-jar",
-                String.format("/opt/jars/codeanalyzer-%s.jar", codeanalyzerVersion),
-                "--input=/test-applications/plantsbywebsphere",
-                "--analysis-level=1", "--verbose"
+                "bash", "-c",
+                String.format(
+                        "export JAVA_HOME=%s && java -jar /opt/jars/codeanalyzer-%s.jar --input=/test-applications/plantsbywebsphere --analysis-level=1 --verbose",
+                        javaHomePath, codeanalyzerVersion
+                )
         );
+
 
         String output = runCodeAnalyzerOnPlantsByWebsphere.getStdout();
 
