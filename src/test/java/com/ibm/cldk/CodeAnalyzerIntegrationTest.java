@@ -51,6 +51,7 @@ public class CodeAnalyzerIntegrationTest {
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("build/libs")), "/opt/jars")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/mvnw-corrupt-test")), "/test-applications/mvnw-corrupt-test")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/plantsbywebsphere")), "/test-applications/plantsbywebsphere")
+            .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/call-graph-test")), "/test-applications/call-graph-test")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/mvnw-working-test")), "/test-applications/mvnw-working-test");
 
     @Container
@@ -104,6 +105,23 @@ public class CodeAnalyzerIntegrationTest {
                 "Should have some output");
     }
 
+    @Test
+    void callGraphShouldHaveKnownEdges() throws Exception {
+        var runCodeAnalyzerOnCallGraphTest = container.withWorkingDirectory("/test-applications/call-graph-test")
+                .execInContainer(
+                "java",
+                "-jar",
+                String.format("/opt/jars/codeanalyzer-%s.jar", codeanalyzerVersion),
+                "--input=/test-applications/call-graph-test",
+                "--analysis-level=2",
+                "--verbose"
+        );
+
+        String output = runCodeAnalyzerOnCallGraphTest.getStdout();
+
+        // Normalize the output to ignore formatting differences
+        String normalizedOutput = output.replaceAll("\\s+", "");
+    }
     @Test
     void corruptMavenShouldNotBuildWithWrapper() throws IOException, InterruptedException {
         // Make executable

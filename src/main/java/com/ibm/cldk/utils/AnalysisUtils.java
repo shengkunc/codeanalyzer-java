@@ -198,9 +198,8 @@ public class AnalysisUtils {
                 System.exit(1);
                 return Stream.empty();
             }
-        // TODO: Do we filter the entry points here?
         }).map(method -> new DefaultEntrypoint(method, cha)).collect(Collectors.toList());
-
+        // We're assuming that all methods are potential entrypoints. May revisit this later if the assumption is incorrect.
         Log.info("Registered " + entrypoints.size() + " entrypoints.");
         return entrypoints;
     }
