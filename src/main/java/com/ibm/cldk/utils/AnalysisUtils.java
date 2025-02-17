@@ -198,7 +198,8 @@ public class AnalysisUtils {
                 System.exit(1);
                 return Stream.empty();
             }
-        }).filter(method -> method.isPublic() || method.isPrivate() || method.isProtected() || method.isStatic()).map(method -> new DefaultEntrypoint(method, cha)).collect(Collectors.toList());
+        // TODO: Do we filter the entry points here?
+        }).map(method -> new DefaultEntrypoint(method, cha)).collect(Collectors.toList());
 
         Log.info("Registered " + entrypoints.size() + " entrypoints.");
         return entrypoints;

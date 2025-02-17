@@ -264,7 +264,8 @@ public class SystemDependencyGraph {
         try {
             System.setOut(new PrintStream(NullOutputStream.INSTANCE));
             System.setErr(new PrintStream(NullOutputStream.INSTANCE));
-            builder = Util.makeVanillaZeroOneCFABuilder(new JavaLanguage(), options, cache, cha);
+//            builder = Util.makeRTABuilder(new JavaLanguage(), options, cache, cha);
+            builder = Util.makeRTABuilder(options, cache, cha);
             callGraph = builder.makeCallGraph(options, null);
         } finally {
             System.setOut(originalOut);
