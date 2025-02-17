@@ -1,10 +1,16 @@
 package com.ibm.cldk;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import org.json.JSONArray;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.MountableFile;
@@ -12,12 +18,11 @@ import org.testcontainers.utility.MountableFile;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.Properties;
+import java.util.stream.StreamSupport;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Testcontainers
 @SuppressWarnings("resource")
@@ -28,7 +33,7 @@ public class CodeAnalyzerIntegrationTest {
      */
     static String codeanalyzerVersion;
     static final String javaVersion = "17";
-
+    static String javaHomePath;
     static {
         // Build project first
         try {
@@ -44,15 +49,14 @@ public class CodeAnalyzerIntegrationTest {
     }
 
     @Container
-    static final GenericContainer<?> container = new GenericContainer<>("openjdk:17-jdk")
+    static final GenericContainer<?> container = new GenericContainer<>("ubuntu:latest")
             .withCreateContainerCmdModifier(cmd -> cmd.withEntrypoint("sh"))
             .withCommand("-c", "while true; do sleep 1; done")
-            .withFileSystemBind(
-                    String.valueOf(Paths.get(System.getProperty("user.dir")).resolve("build/libs")),
-                    "/opt/jars",
-                    BindMode.READ_WRITE)
+            .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("build/libs")), "/opt/jars")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("build/libs")), "/opt/jars")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/mvnw-corrupt-test")), "/test-applications/mvnw-corrupt-test")
+            .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/plantsbywebsphere")), "/test-applications/plantsbywebsphere")
+            .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/call-graph-test")), "/test-applications/call-graph-test")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/mvnw-working-test")), "/test-applications/mvnw-working-test");
 
     @Container
@@ -61,11 +65,32 @@ public class CodeAnalyzerIntegrationTest {
             .withCommand("-c", "while true; do sleep 1; done")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("build/libs")), "/opt/jars")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/mvnw-corrupt-test")), "/test-applications/mvnw-corrupt-test")
-            .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/mvnw-working-test")), "/test-applications/mvnw-working-test");
+            .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/mvnw-working-test")), "/test-applications/mvnw-working-test")
+            .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/daytrader8")), "/test-applications/daytrader8");
 
+    public CodeAnalyzerIntegrationTest() throws IOException, InterruptedException {
+    }
 
     @BeforeAll
     static void setUp() {
+        // Install Java 17 in the base container
+        try {
+            container.execInContainer("apt-get", "update");
+            container.execInContainer("apt-get", "install", "-y", "openjdk-17-jdk");
+
+            // Get JAVA_HOME dynamically
+            var javaHomeResult = container.execInContainer("bash", "-c",
+                    "dirname $(dirname $(readlink -f $(which java)))"
+            );
+            javaHomePath = javaHomeResult.getStdout().trim();
+            Assertions.assertFalse(javaHomePath.isEmpty(), "Failed to determine JAVA_HOME");
+
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        // Get the version of the codeanalyzer jar
         Properties properties = new Properties();
         try (FileInputStream fis = new FileInputStream(
                 Paths.get(System.getProperty("user.dir"), "gradle.properties").toFile())) {
@@ -94,16 +119,34 @@ public class CodeAnalyzerIntegrationTest {
     @Test
     void shouldBeAbleToRunCodeAnalyzer() throws Exception {
         var runCodeAnalyzerJar = container.execInContainer(
-                "java",
-                "-jar",
-                String.format("/opt/jars/codeanalyzer-%s.jar", codeanalyzerVersion),
-                "--help"
-        );
+                "bash", "-c",
+                String.format("export JAVA_HOME=%s && java -jar /opt/jars/codeanalyzer-%s.jar --help",
+                        javaHomePath, codeanalyzerVersion
+                ));
 
         Assertions.assertEquals(0, runCodeAnalyzerJar.getExitCode(),
                 "Command should execute successfully");
         Assertions.assertTrue(runCodeAnalyzerJar.getStdout().length() > 0,
                 "Should have some output");
+    }
+
+    @Test
+    void callGraphShouldHaveKnownEdges() throws Exception {
+        var whatIsInTheTestAppFolder = container.execInContainer("ls", "/test-applications/call-graph-test");
+        var runCodeAnalyzerOnCallGraphTest = container.execInContainer(
+                "bash", "-c",
+                String.format(
+                        "export JAVA_HOME=%s && java -jar /opt/jars/codeanalyzer-%s.jar --input=/test-applications/call-graph-test --analysis-level=2",
+                        javaHomePath, codeanalyzerVersion
+                )
+        );
+
+        // Read the output JSON
+        Gson gson = new Gson();
+        JsonObject jsonObject = gson.fromJson(runCodeAnalyzerOnCallGraphTest.getStdout(), JsonObject.class);
+        JsonArray systemDepGraph = jsonObject.getAsJsonArray("system_dependency_graph");
+        Assertions.assertEquals(4, StreamSupport.stream(systemDepGraph.spliterator(), false).count(),
+                "Expected exactly 4 entries in the system dependency graph");
     }
 
     @Test
@@ -129,19 +172,19 @@ public class CodeAnalyzerIntegrationTest {
         Assertions.assertTrue(runCodeAnalyzer.getStdout().contains("[ERROR]\tCannot run program \"/test-applications/mvnw-corrupt-test/mvnw\"") && runCodeAnalyzer.getStdout().contains("/mvn."));
         // We should correctly identify the build tool used in the mvn command from the system path.
         Assertions.assertTrue(runCodeAnalyzer.getStdout().contains("[INFO]\tBuilding the project using /usr/bin/mvn."));
-        }
+    }
 
     @Test
     void corruptMavenShouldNotTerminateWithErrorWhenMavenIsNotPresentUnlessAnalysisLevel2() throws IOException, InterruptedException {
         // When analysis level 2, we should get a Runtime Exception
         var runCodeAnalyzer = container.execInContainer(
-                        "java",
-                        "-jar",
-                        String.format("/opt/jars/codeanalyzer-%s.jar", codeanalyzerVersion),
-                        "--input=/test-applications/mvnw-corrupt-test",
-                        "--output=/tmp/",
-                        "--analysis-level=2"
-                );
+                "bash", "-c",
+                String.format(
+                        "export JAVA_HOME=%s && java -jar /opt/jars/codeanalyzer-%s.jar --input=/test-applications/mvnw-corrupt-test --output=/tmp/ --analysis-level=2",
+                        javaHomePath, codeanalyzerVersion
+                )
+        );
+
         Assertions.assertEquals(1, runCodeAnalyzer.getExitCode());
         Assertions.assertTrue(runCodeAnalyzer.getStderr().contains("java.lang.RuntimeException"));
     }
