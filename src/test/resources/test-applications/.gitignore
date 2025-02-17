@@ -38,6 +38,8 @@ target/
 *.iws
 *.ipr
 
+!gradle-wrapper.jar
+
 # Ignore Eclipse files
 .settings/
 *.classpath
