@@ -4,13 +4,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ProjectDirectoryScanner {
     public static List<Path> classFilesStream(String projectPath) throws IOException {
-        Path projectDir = Paths.get(projectPath);
+        Path projectDir = Paths.get(projectPath).toAbsolutePath();
         Log.info("Finding *.class files in " + projectDir);
         if (Files.exists(projectDir)) {
             try (Stream<Path> paths = Files.walk(projectDir)) {
@@ -37,7 +38,7 @@ public class ProjectDirectoryScanner {
                         .collect(Collectors.toList());
             }
         }
-        return null;
+        return new ArrayList<>();
     }
 
     public static List<Path> sourceFilesStream(String projectPath) throws IOException {

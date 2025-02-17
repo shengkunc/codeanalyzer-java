@@ -33,7 +33,7 @@ task copyServerLibs(type: Copy) {
     into "${buildDir}/wlp/usr/servers/${rootProject.name}Server/lib"
 }
 
-war.archiveName = "${rootProject.name}.war"
+war.archiveFileName = "${rootProject.name}.war"
 test.dependsOn 'war'
 
 test {
