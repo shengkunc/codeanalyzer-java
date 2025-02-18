@@ -27,5 +27,6 @@ public class Type {
     private Map<String, Callable> callableDeclarations = new HashMap<>();
     private List<Field> fieldDeclarations = new ArrayList<>();
     private List<EnumConstant> enumConstants = new ArrayList<>();
+    private List<RecordComponent> recordComponents = new ArrayList<>();
     private boolean isEntrypointClass = false;
 }

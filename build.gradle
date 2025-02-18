@@ -16,6 +16,7 @@ plugins {
     id 'eclipse'
     id 'application'
     id 'org.graalvm.buildtools.native' version '0.10.4'
+    id 'org.jetbrains.kotlin.jvm'
 }
 
 // Get the version from the property file first
@@ -30,8 +31,6 @@ repositories {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
 }
 
 if (project.hasProperty('mainClass')) {
@@ -121,7 +120,8 @@ dependencies {
     implementation('org.jgrapht:jgrapht-core:1.5.2')
     implementation('org.jgrapht:jgrapht-io:1.5.2')
     implementation('org.jgrapht:jgrapht-ext:1.5.2')
-    implementation('com.github.javaparser:javaparser-symbol-solver-core:3.25.9')
+    implementation('com.github.javaparser:javaparser-symbol-solver-core:3.26.3')
+    implementation('com.github.javaparser:javaparser-core:3.26.3')
 
     // TestContainers
     testImplementation 'org.testcontainers:testcontainers:1.19.3'
@@ -135,6 +135,7 @@ dependencies {
     // SLF4J - for TestContainers logging
     testImplementation 'org.slf4j:slf4j-api:2.0.9'
     testImplementation 'org.slf4j:slf4j-simple:2.0.9'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 
 }
 
@@ -277,3 +278,6 @@ tasks.register('bumpVersion') {
 }
 
 nativeCompile.finalizedBy copyNativeExecutable
+    kotlin {
+        jvmToolchain(11)
+    }

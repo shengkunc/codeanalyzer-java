@@ -4,13 +4,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import org.json.JSONArray;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.MountableFile;
@@ -19,7 +16,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.time.Duration;
+import java.util.Map;
 import java.util.Properties;
 import java.util.stream.StreamSupport;
 
@@ -57,6 +54,7 @@ public class CodeAnalyzerIntegrationTest {
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/mvnw-corrupt-test")), "/test-applications/mvnw-corrupt-test")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/plantsbywebsphere")), "/test-applications/plantsbywebsphere")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/call-graph-test")), "/test-applications/call-graph-test")
+            .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/record-class-test")), "/test-applications/record-class-test")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/mvnw-working-test")), "/test-applications/mvnw-working-test");
 
     @Container
@@ -253,5 +251,52 @@ public class CodeAnalyzerIntegrationTest {
         // Assertions for both CRUD operations and queries
         Assertions.assertTrue(normalizedOutput.contains(normalizedExpectedCrudOperation), "Expected CRUD operation JSON structure not found");
         Assertions.assertTrue(normalizedOutput.contains(normalizedExpectedCrudQuery), "Expected CRUD query JSON structure not found");
+    }
+
+    @Test
+    void symbolTableShouldHaveRecords() throws IOException, InterruptedException {
+        var runCodeAnalyzerOnCallGraphTest = container.execInContainer(
+                "bash", "-c",
+                String.format(
+                        "export JAVA_HOME=%s && java -jar /opt/jars/codeanalyzer-%s.jar --input=/test-applications/record-class-test --analysis-level=1",
+                        javaHomePath, codeanalyzerVersion
+                )
+        );
+
+        // Read the output JSON
+        Gson gson = new Gson();
+        JsonObject jsonObject = gson.fromJson(runCodeAnalyzerOnCallGraphTest.getStdout(), JsonObject.class);
+        JsonObject symbolTable = jsonObject.getAsJsonObject("symbol_table");
+        Assertions.assertEquals(4, symbolTable.size(), "Symbol table should have 4 records");
+    }
+
+    @Test
+    void symbolTableShouldHaveDefaultRecordComponents() throws IOException, InterruptedException {
+        var runCodeAnalyzerOnCallGraphTest = container.execInContainer(
+                "bash", "-c",
+                String.format(
+                        "export JAVA_HOME=%s && java -jar /opt/jars/codeanalyzer-%s.jar --input=/test-applications/record-class-test --analysis-level=1",
+                        javaHomePath, codeanalyzerVersion
+                )
+        );
+
+        // Read the output JSON
+        Gson gson = new Gson();
+        JsonObject jsonObject = gson.fromJson(runCodeAnalyzerOnCallGraphTest.getStdout(), JsonObject.class);
+        JsonObject symbolTable = jsonObject.getAsJsonObject("symbol_table");
+        for (Map.Entry<String, JsonElement> element : symbolTable.entrySet()) {
+            String key = element.getKey();
+            if (!key.endsWith("PersonRecord.java")) {
+                continue;
+            }
+            JsonObject type = element.getValue().getAsJsonObject();
+            if (type.has("type_declarations")) {
+                JsonObject typeDeclarations = type.getAsJsonObject("type_declarations");
+                JsonArray recordComponent = typeDeclarations.getAsJsonObject("org.example.PersonRecord").getAsJsonArray("record_components");
+                Assertions.assertEquals(2, recordComponent.size(), "Record component should have 2 components");
+                JsonObject record = recordComponent.get(1).getAsJsonObject();
+                Assertions.assertTrue(record.get("name").getAsString().equals("age") && record.get("default_value").getAsInt() == 18, "Record component should have a name");
+            }
+        }
     }
 }

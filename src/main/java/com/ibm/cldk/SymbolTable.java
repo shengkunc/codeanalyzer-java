@@ -33,6 +33,7 @@ import com.ibm.cldk.javaee.utils.enums.CRUDQueryType;
 import com.ibm.cldk.entities.*;
 import com.ibm.cldk.utils.Log;
 import org.apache.commons.lang3.tuple.Pair;
+import org.checkerframework.checker.units.qual.C;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -110,8 +111,7 @@ public class SymbolTable {
         cUnit.setTypeDeclarations(parseResult.findAll(TypeDeclaration.class).stream().filter(typeDecl -> typeDecl.getFullyQualifiedName().isPresent()).map(typeDecl -> {
             // get type name and initialize the type object
             String typeName = typeDecl.getFullyQualifiedName().get().toString();
-            com.ibm.cldk.entities.Type typeNode = new com.ibm.cldk.entities.Type();
-
+            com.ibm.cldk.entities.Type typeNode = new com.ibm.cldk.entities.Type();;
             if (typeDecl instanceof ClassOrInterfaceDeclaration) {
                 ClassOrInterfaceDeclaration classDecl = (ClassOrInterfaceDeclaration) typeDecl;
 
@@ -146,8 +146,26 @@ public class SymbolTable {
 
                 // Add enum constants
                 typeNode.setEnumConstants(enumDecl.getEntries().stream().map(SymbolTable::processEnumConstantDeclaration).collect(Collectors.toList()));
+            }
+            else if (typeDecl instanceof RecordDeclaration) {
+                RecordDeclaration recordDecl = (RecordDeclaration) typeDecl;
 
-            } else {
+                // Set that this is a record declaration
+                typeNode.setRecordDeclaration(typeDecl.isRecordDeclaration());
+
+                // Add interfaces implemented by record
+                typeNode.setImplementsList(recordDecl.getImplementedTypes().stream().map(SymbolTable::resolveType).collect(Collectors.toList()));
+
+                // Add record modifiers
+                typeNode.setModifiers(recordDecl.getModifiers().stream().map(m -> m.toString().strip()).collect(Collectors.toList()));
+
+                // Add record annotations
+                typeNode.setAnnotations(recordDecl.getAnnotations().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
+
+                // Add record components
+                typeNode.setRecordComponents(processRecordComponents(recordDecl));
+            }
+            else {
                 // TODO: handle AnnotationDeclaration, RecordDeclaration
                 // set the common type attributes only
                 Log.warn("Found unsupported type declaration: " + typeDecl.toString());
@@ -162,7 +180,6 @@ public class SymbolTable {
             typeNode.setClassOrInterfaceDeclaration(typeDecl.isClassOrInterfaceDeclaration());
             typeNode.setEnumDeclaration(typeDecl.isEnumDeclaration());
             typeNode.setAnnotationDeclaration(typeDecl.isAnnotationDeclaration());
-            typeNode.setRecordDeclaration(typeDecl.isRecordDeclaration());
 
             // Add class comment
             typeNode.setComment(typeDecl.getComment().isPresent() ? typeDecl.getComment().get().asString() : "");
@@ -194,6 +211,40 @@ public class SymbolTable {
         }).collect(Collectors.toMap(p -> p.getLeft(), p -> p.getRight())));
 
         return cUnit;
+    }
+
+
+    private static List<RecordComponent> processRecordComponents(RecordDeclaration recordDecl) {
+        return recordDecl.getParameters().stream().map(
+                parameter -> {
+                    RecordComponent recordComponent = new RecordComponent();
+                    recordComponent.setName(parameter.getNameAsString());
+                    recordComponent.setType(resolveType(parameter.getType()));
+                    recordComponent.setAnnotations(parameter.getAnnotations().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
+                    recordComponent.setModifiers(parameter.getModifiers().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
+                    recordComponent.setVarArgs(parameter.isVarArgs());
+                    recordComponent.setDefaultValue(mapRecordConstructorDefaults(recordDecl).getOrDefault(parameter.getNameAsString(), null));
+                    return recordComponent;
+                }
+        ).collect(Collectors.toList());
+    }
+
+    private static Map<String, Object> mapRecordConstructorDefaults(RecordDeclaration recordDecl) {
+
+        return recordDecl.getCompactConstructors().stream()
+                .flatMap(constructor -> constructor.findAll(AssignExpr.class).stream()) // Flatten all assignments
+                .filter(assignExpr -> assignExpr.getTarget().isNameExpr()) // Ensure assignment is to a parameter
+                .collect(Collectors.toMap(
+                        assignExpr -> assignExpr.getTarget().asNameExpr().getNameAsString(), // Key: Parameter Name
+                        assignExpr -> Optional.ofNullable(assignExpr.getValue()).map(valueExpr -> { // Value: Default Value
+                            return valueExpr.isStringLiteralExpr() ? valueExpr.asStringLiteralExpr().asString()
+                                    : valueExpr.isBooleanLiteralExpr() ? valueExpr.asBooleanLiteralExpr().getValue()
+                                    : valueExpr.isCharLiteralExpr() ? valueExpr.asCharLiteralExpr().getValue()
+                                    : valueExpr.isDoubleLiteralExpr() ? valueExpr.asDoubleLiteralExpr().asDouble()
+                                    : valueExpr.isIntegerLiteralExpr() ? valueExpr.asIntegerLiteralExpr().asNumber()
+                                    : valueExpr.isLongLiteralExpr() ? valueExpr.asLongLiteralExpr().asNumber()
+                                    : valueExpr.isNullLiteralExpr() ? null
+                                    : valueExpr.toString();}).orElse("null"))); // Default: store as a string
     }
 
     private static boolean isEntryPointClass(TypeDeclaration typeDecl) {
@@ -904,7 +955,7 @@ public class SymbolTable {
     public static Pair<Map<String, JavaCompilationUnit>, Map<String, List<Problem>>> extractAll(Path projectRootPath) throws IOException {
         SymbolSolverCollectionStrategy symbolSolverCollectionStrategy = new SymbolSolverCollectionStrategy();
         ProjectRoot projectRoot = symbolSolverCollectionStrategy.collect(projectRootPath);
-        javaSymbolSolver = (JavaSymbolSolver) symbolSolverCollectionStrategy.getParserConfiguration().getSymbolResolver().get();
+        javaSymbolSolver = (JavaSymbolSolver) symbolSolverCollectionStrategy.getParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21).getSymbolResolver().get();
         Map<String, JavaCompilationUnit> symbolTable = new LinkedHashMap<>();
         Map<String, List<Problem>> parseProblems = new HashMap<>();
         for (SourceRoot sourceRoot : projectRoot.getSourceRoots()) {
@@ -927,7 +978,7 @@ public class SymbolTable {
         CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
         combinedTypeSolver.add(new ReflectionTypeSolver());
 
-        ParserConfiguration parserConfiguration = new ParserConfiguration();
+        ParserConfiguration parserConfiguration = new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
         parserConfiguration.setSymbolResolver(new JavaSymbolSolver(combinedTypeSolver));
 
         JavaParser javaParser = new JavaParser(parserConfiguration);
@@ -958,7 +1009,8 @@ public class SymbolTable {
         SymbolSolverCollectionStrategy symbolSolverCollectionStrategy = new SymbolSolverCollectionStrategy();
         ProjectRoot projectRoot = symbolSolverCollectionStrategy.collect(projectRootPath);
         javaSymbolSolver = (JavaSymbolSolver) symbolSolverCollectionStrategy.getParserConfiguration().getSymbolResolver().get();
-        ParserConfiguration parserConfiguration = new ParserConfiguration();
+        Log.info("Setting parser language level to JAVA_21");
+        ParserConfiguration parserConfiguration = new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
         parserConfiguration.setSymbolResolver(javaSymbolSolver);
 
         // create java parser with the configuration
@@ -972,6 +1024,7 @@ public class SymbolTable {
             ParseResult<CompilationUnit> parseResult = javaParser.parse(javaFilePath);
             if (parseResult.isSuccessful()) {
                 CompilationUnit compilationUnit = parseResult.getResult().get();
+                System.out.println("Successfully parsed file: " + javaFilePath.toString());
                 symbolTable.put(compilationUnit.getStorage().get().getPath().toString(), processCompilationUnit(compilationUnit));
             } else {
                 Log.error(parseResult.getProblems().toString());
