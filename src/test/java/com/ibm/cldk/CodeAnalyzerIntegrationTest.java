@@ -299,4 +299,37 @@ public class CodeAnalyzerIntegrationTest {
             }
         }
     }
+
+    @Test
+    void parametersInCallableMustHaveStartAndEndLineAndColumns() throws IOException, InterruptedException {
+        var runCodeAnalyzerOnCallGraphTest = container.execInContainer(
+                "bash", "-c",
+                String.format(
+                        "export JAVA_HOME=%s && java -jar /opt/jars/codeanalyzer-%s.jar --input=/test-applications/record-class-test --analysis-level=1",
+                        javaHomePath, codeanalyzerVersion
+                )
+        );
+
+        // Read the output JSON
+        Gson gson = new Gson();
+        JsonObject jsonObject = gson.fromJson(runCodeAnalyzerOnCallGraphTest.getStdout(), JsonObject.class);
+        JsonObject symbolTable = jsonObject.getAsJsonObject("symbol_table");
+        for (Map.Entry<String, JsonElement> element : symbolTable.entrySet()) {
+            String key = element.getKey();
+            if (!key.endsWith("App.java")) {
+                continue;
+            }
+            JsonObject type = element.getValue().getAsJsonObject();
+            if (type.has("type_declarations")) {
+                JsonObject typeDeclarations = type.getAsJsonObject("type_declarations");
+                JsonObject mainMethod = typeDeclarations.getAsJsonObject("org.example.App").getAsJsonObject("callable_declarations").getAsJsonObject("main(String[])");
+                JsonArray parameters = mainMethod.getAsJsonArray("parameters");
+                // There should be 1 parameter
+                Assertions.assertEquals(1, parameters.size(), "Callable should have 1 parameter");
+                JsonObject parameter = parameters.get(0).getAsJsonObject();
+                // Start and end line and column should not be -1
+                Assertions.assertTrue(parameter.get("start_line").getAsInt() == 7 && parameter.get("end_line").getAsInt() == 7 && parameter.get("start_column").getAsInt() == 29 && parameter.get("end_column").getAsInt() == 41, "Parameter should have start and end line and columns");
+            }
+        }
+    }
 }

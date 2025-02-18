@@ -401,6 +401,10 @@ public class SymbolTable {
         parameter.setName(paramDecl.getName().toString());
         parameter.setAnnotations(paramDecl.getAnnotations().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
         parameter.setModifiers(paramDecl.getModifiers().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
+        parameter.setStartLine(paramDecl.getRange().isPresent() ? paramDecl.getRange().get().begin.line : -1);
+        parameter.setStartColumn(paramDecl.getRange().isPresent() ? paramDecl.getRange().get().begin.column : -1);
+        parameter.setEndLine(paramDecl.getRange().isPresent() ? paramDecl.getRange().get().end.line : -1);
+        parameter.setEndColumn(paramDecl.getRange().isPresent() ? paramDecl.getRange().get().end.column : -1);
         return parameter;
     }
 
