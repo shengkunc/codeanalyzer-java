@@ -3,6 +3,7 @@ package com.ibm.cldk.entities;
 import lombok.Data;
 
 import java.util.List;
+import java.util.stream.Collector;
 
 @Data
 public class InitializationBlock {
@@ -19,4 +20,5 @@ public class InitializationBlock {
     private List<CallSite> callSites;
     private List<VariableDeclaration> variableDeclarations;
     private int cyclomaticComplexity;
+
 }

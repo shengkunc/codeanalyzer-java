@@ -12,6 +12,7 @@ public class App {
             initializeStaticFields();
         } catch (Exception e) {
             System.err.println("Error in static block: " + e.getMessage());
+            throw new RuntimeException(e);
         }
     }
 

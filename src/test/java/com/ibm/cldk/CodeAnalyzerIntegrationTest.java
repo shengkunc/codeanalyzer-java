@@ -55,6 +55,7 @@ public class CodeAnalyzerIntegrationTest {
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/plantsbywebsphere")), "/test-applications/plantsbywebsphere")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/call-graph-test")), "/test-applications/call-graph-test")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/record-class-test")), "/test-applications/record-class-test")
+            .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/init-blocks-test")), "/test-applications/init-blocks-test")
             .withCopyFileToContainer(MountableFile.forHostPath(Paths.get(System.getProperty("user.dir")).resolve("src/test/resources/test-applications/mvnw-working-test")), "/test-applications/mvnw-working-test");
 
     @Container
@@ -329,6 +330,37 @@ public class CodeAnalyzerIntegrationTest {
                 JsonObject parameter = parameters.get(0).getAsJsonObject();
                 // Start and end line and column should not be -1
                 Assertions.assertTrue(parameter.get("start_line").getAsInt() == 7 && parameter.get("end_line").getAsInt() == 7 && parameter.get("start_column").getAsInt() == 29 && parameter.get("end_column").getAsInt() == 41, "Parameter should have start and end line and columns");
+            }
+        }
+    }
+
+    @Test
+    void mustBeAbleToResolveInitializationBlocks() throws IOException, InterruptedException {
+        var runCodeAnalyzerOnCallGraphTest = container.execInContainer(
+                "bash", "-c",
+                String.format(
+                        "export JAVA_HOME=%s && java -jar /opt/jars/codeanalyzer-%s.jar --input=/test-applications/init-blocks-test --analysis-level=1",
+                        javaHomePath, codeanalyzerVersion
+                )
+        );
+
+        // Read the output JSON
+        Gson gson = new Gson();
+        JsonObject jsonObject = gson.fromJson(runCodeAnalyzerOnCallGraphTest.getStdout(), JsonObject.class);
+        JsonObject symbolTable = jsonObject.getAsJsonObject("symbol_table");
+        for (Map.Entry<String, JsonElement> element : symbolTable.entrySet()) {
+            String key = element.getKey();
+            if (!key.endsWith("App.java")) {
+                continue;
+            }
+            JsonObject type = element.getValue().getAsJsonObject();
+            if (type.has("type_declarations")) {
+                JsonObject typeDeclarations = type.getAsJsonObject("type_declarations");
+                JsonArray initializationBlocks = typeDeclarations.getAsJsonObject("org.example.App").getAsJsonArray("initialization_blocks");
+                // There should be 2 blocks
+                Assertions.assertEquals(2, initializationBlocks.size(), "Callable should have 1 parameter");
+                Assertions.assertTrue(initializationBlocks.get(0).getAsJsonObject().get("is_static").getAsBoolean(), "Static block should be marked as static");
+                Assertions.assertFalse(initializationBlocks.get(1).getAsJsonObject().get("is_static").getAsBoolean(), "Instance block should be marked as not static");
             }
         }
     }
