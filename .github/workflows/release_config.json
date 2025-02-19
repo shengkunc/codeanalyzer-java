@@ -27,6 +27,10 @@
     {
       "title": "## \uD83D\uDEE0 Other Updates",
       "labels": ["other", "kind/dependency-change"]
+    },
+    {
+      "title": "## 🚨 Breaking Changes",
+      "labels": ["breaking"]
     }
   ],
   "ignore_labels": [

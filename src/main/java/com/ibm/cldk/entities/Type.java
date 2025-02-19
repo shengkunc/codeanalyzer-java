@@ -28,5 +28,6 @@ public class Type {
     private List<Field> fieldDeclarations = new ArrayList<>();
     private List<EnumConstant> enumConstants = new ArrayList<>();
     private List<RecordComponent> recordComponents = new ArrayList<>();
+    private List<InitializationBlock> initializationBlocks = new ArrayList<>();
     private boolean isEntrypointClass = false;
 }

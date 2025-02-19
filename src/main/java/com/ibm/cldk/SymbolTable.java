@@ -33,7 +33,6 @@ import com.ibm.cldk.javaee.utils.enums.CRUDQueryType;
 import com.ibm.cldk.entities.*;
 import com.ibm.cldk.utils.Log;
 import org.apache.commons.lang3.tuple.Pair;
-import org.checkerframework.checker.units.qual.C;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -172,9 +171,16 @@ public class SymbolTable {
                 typeNode = new com.ibm.cldk.entities.Type();
             }
 
-                    /* set common attributes of types that available in type declarations:
-                is nested type, is class or interface declaration, is enum declaration,
-                comments, parent class, callable declarations, field declarations */
+            /* set common attributes of types that available in type declarations:
+            is nested type, is class or interface declaration, is enum declaration,
+            comments, parent class, callable declarations, field declarations
+            */
+            // Discover initialization blocks
+            typeNode.setInitializationBlocks(typeDecl.findAll(InitializerDeclaration.class).stream()
+                    .map(initializerDeclaration -> {
+                        return createInitializationBlock(initializerDeclaration, parseResult.getStorage().map(s -> s.getPath().toString()).orElse("<in-memory>"));
+                    })
+                    .collect(Collectors.toList()));
             // Set fields indicating nested, class/interface, enum, annotation, and record types
             typeNode.setNestedType(typeDecl.isNestedType());
             typeNode.setClassOrInterfaceDeclaration(typeDecl.isClassOrInterfaceDeclaration());
@@ -213,7 +219,38 @@ public class SymbolTable {
         return cUnit;
     }
 
-
+    private static InitializationBlock createInitializationBlock(InitializerDeclaration initializerDeclaration, String filePath) {
+        InitializationBlock initializationBlock = new InitializationBlock();
+        initializationBlock.setFilePath(filePath);
+        initializationBlock.setComment(initializerDeclaration.getComment().isPresent() ? initializerDeclaration.getComment().get().asString() : "");
+        initializationBlock.setAnnotations(initializerDeclaration.getAnnotations().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
+        // add exceptions declared in "throws" clause
+        initializationBlock.setThrownExceptions(initializerDeclaration.getBody().getStatements().stream().filter(Statement::isThrowStmt).map(throwStmt -> {
+            try {
+                return javaSymbolSolver.calculateType(throwStmt.asThrowStmt().getExpression()).describe();
+            } catch (Exception e) {
+                return throwStmt.asThrowStmt().getExpression().toString();
+            }
+        }).collect(Collectors.toList()));
+        initializationBlock.setCode(initializerDeclaration.getBody().toString());
+        initializationBlock.setStartLine(initializerDeclaration.getRange().isPresent() ? initializerDeclaration.getRange().get().begin.line : -1);
+        initializationBlock.setEndLine(initializerDeclaration.getRange().isPresent() ? initializerDeclaration.getRange().get().end.line : -1);
+        initializationBlock.setStatic(initializerDeclaration.isStatic());
+        initializationBlock.setReferencedTypes(getReferencedTypes(Optional.ofNullable(initializerDeclaration.getBody())));
+        initializationBlock.setAccessedFields(getAccessedFields(Optional.ofNullable(initializerDeclaration.getBody()), Collections.emptyList(), ""));
+        initializationBlock.setCallSites(getCallSites(Optional.ofNullable(initializerDeclaration.getBody())));
+        initializationBlock.setVariableDeclarations(getVariableDeclarations(Optional.ofNullable(initializerDeclaration.getBody())));
+        initializationBlock.setCyclomaticComplexity(getCyclomaticComplexity(initializerDeclaration));
+        return initializationBlock;
+    }
+    /**
+     * Processes the given record to extract information about the
+     * declared field and returns a JSON object containing the extracted
+     * information.
+     *
+     * @param recordDecl field declaration to be processed
+     * @return Field object containing extracted information
+     */
     private static List<RecordComponent> processRecordComponents(RecordDeclaration recordDecl) {
         return recordDecl.getParameters().stream().map(
                 parameter -> {
@@ -566,6 +603,14 @@ public class SymbolTable {
         int switchCaseCount = callableDeclaration.findAll(SwitchStmt.class).stream().map(stmt -> stmt.getEntries().size()).reduce(0, Integer::sum);
         int conditionalExprCount = callableDeclaration.findAll(ConditionalExpr.class).size();
         int catchClauseCount = callableDeclaration.findAll(CatchClause.class).size();
+        return ifStmtCount + loopStmtCount + switchCaseCount + conditionalExprCount + catchClauseCount + 1;
+    }
+    private static int getCyclomaticComplexity(InitializerDeclaration initializerDeclaration) {
+        int ifStmtCount = initializerDeclaration.findAll(IfStmt.class).size();
+        int loopStmtCount = initializerDeclaration.findAll(DoStmt.class).size() + initializerDeclaration.findAll(ForStmt.class).size() + initializerDeclaration.findAll(ForEachStmt.class).size() + initializerDeclaration.findAll(WhileStmt.class).size();
+        int switchCaseCount = initializerDeclaration.findAll(SwitchStmt.class).stream().map(stmt -> stmt.getEntries().size()).reduce(0, Integer::sum);
+        int conditionalExprCount = initializerDeclaration.findAll(ConditionalExpr.class).size();
+        int catchClauseCount = initializerDeclaration.findAll(CatchClause.class).size();
         return ifStmtCount + loopStmtCount + switchCaseCount + conditionalExprCount + catchClauseCount + 1;
     }
 
