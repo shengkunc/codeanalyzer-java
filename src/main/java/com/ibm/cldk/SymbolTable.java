@@ -136,11 +136,21 @@ public class SymbolTable {
 
         cUnit.setFilePath(parseResult.getStorage().map(s -> s.getPath().toString()).orElse("<in-memory>"));
 
-        com.ibm.cldk.entities.Comment comment = new com.ibm.cldk.entities.Comment();
+        // Set file level comment
+        parseResult.getAllComments().stream().findFirst().ifPresent(c -> {
+            com.ibm.cldk.entities.Comment fileComment = new com.ibm.cldk.entities.Comment();
+            fileComment.setContent(c.getContent());
+            fileComment.setStartLine(c.getRange().isPresent() ? c.getRange().get().begin.line : -1);
+            fileComment.setEndLine(c.getRange().isPresent() ? c.getRange().get().end.line : -1);
+            fileComment.setStartColumn(c.getRange().isPresent() ? c.getRange().get().begin.column : -1);
+            fileComment.setEndColumn(c.getRange().isPresent() ? c.getRange().get().end.column : -1);
+            fileComment.setJavadoc(c.isJavadocComment());
+            cUnit.getComments().add(fileComment);
+        });
 
         // Add class comment
         cUnit.setComments(
-                parseResult.getAllContainedComments().stream().map(c -> {
+                parseResult.getAllComments().stream().map(c -> {
                             com.ibm.cldk.entities.Comment fileComment = new com.ibm.cldk.entities.Comment();
                             fileComment.setContent(c.getContent());
                             fileComment.setStartLine(c.getRange().isPresent() ? c.getRange().get().begin.line : -1);
@@ -154,7 +164,6 @@ public class SymbolTable {
 
         // Set package name
         cUnit.setPackageName(parseResult.getPackageDeclaration().map(NodeWithName::getNameAsString).orElse(""));
-        
         // Add javadoc comment
         // Add imports
         cUnit.setImports(
