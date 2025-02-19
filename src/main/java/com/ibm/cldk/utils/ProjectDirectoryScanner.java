@@ -9,20 +9,15 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.ibm.cldk.CodeAnalyzer.includeTestClasses;
+
 public class ProjectDirectoryScanner {
     public static List<Path> classFilesStream(String projectPath) throws IOException {
         Path projectDir = Paths.get(projectPath).toAbsolutePath();
         Log.info("Finding *.class files in " + projectDir);
         if (Files.exists(projectDir)) {
             try (Stream<Path> paths = Files.walk(projectDir)) {
-                return paths.filter(file -> !Files.isDirectory(file) && file.toString().endsWith(".class"))
-                        .filter(file -> {
-                            // Let's find the path relative to the project directory
-                            Path relativePath = projectDir.relativize(file.toAbsolutePath());
-                            String relativePathAsString = relativePath.toString().replace("\\", "/"); // Windows fix
-                            return !relativePathAsString.contains("test/resources/") && !relativePathAsString.contains("main/resources/");
-                        })
-                        .collect(Collectors.toList());
+                return paths.filter(file -> !Files.isDirectory(file) && file.toString().endsWith(".class")).collect(Collectors.toList());
             }
         }
         return null;
@@ -47,13 +42,13 @@ public class ProjectDirectoryScanner {
         if (Files.exists(projectDir)) {
             try (Stream<Path> paths = Files.walk(projectDir)) {
                 return paths
-                    .filter(file -> !Files.isDirectory(file))
-                    .filter(file -> file.toString().endsWith(".java"))
-                    .filter(file -> !file.toAbsolutePath().toString().contains("build/"))
-                    .filter(file -> !file.toAbsolutePath().toString().contains("target/"))
-                    .filter(file -> !file.toAbsolutePath().toString().contains("main/resources/"))
-                    .filter(file -> !file.toAbsolutePath().toString().contains("test/resources/"))
-                    .collect(Collectors.toList());
+                        .filter(file -> !Files.isDirectory(file))
+                        .filter(file -> file.toString().endsWith(".java"))
+                        .filter(file -> !file.toAbsolutePath().toString().contains("build/"))
+                        .filter(file -> !file.toAbsolutePath().toString().contains("target/"))
+                        .filter(file -> !file.toAbsolutePath().toString().contains("main/resources/"))
+                        .filter(file -> !file.toAbsolutePath().toString().contains("test/resources/"))
+                        .collect(Collectors.toList());
             }
         }
         return null;
