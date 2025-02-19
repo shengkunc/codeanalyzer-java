@@ -46,7 +46,7 @@ class VersionProvider implements CommandLine.IVersionProvider {
 
     public String[] getVersion() throws Exception {
         String version = getClass().getPackage().getImplementationVersion();
-        return new String[]{version != null ? version : "unknown"};
+        return new String[] { version != null ? version : "unknown" };
     }
 }
 
@@ -56,34 +56,43 @@ class VersionProvider implements CommandLine.IVersionProvider {
 @Command(name = "codeanalyzer", mixinStandardHelpOptions = true, sortOptions = false, versionProvider = VersionProvider.class, description = "Analyze java application.")
 public class CodeAnalyzer implements Runnable {
 
-    @Option(names = {"-i", "--input"}, description = "Path to the project root directory.")
+    @Option(names = { "-i", "--input" }, description = "Path to the project root directory.")
     private static String input;
 
-    @Option(names = {"-t", "--target-files"}, description = "Paths to files to be analyzed from the input application.")
+    @Option(names = { "-t",
+            "--target-files" }, description = "Paths to files to be analyzed from the input application.")
     private static List<String> targetFiles;
 
-    @Option(names = {"-s", "--source-analysis"}, description = "Analyze a single string of java source code instead the project.")
+    @Option(names = { "-s",
+            "--source-analysis" }, description = "Analyze a single string of java source code instead the project.")
     private static String sourceAnalysis;
 
-    @Option(names = {"-o", "--output"}, description = "Destination directory to save the output graphs. By default, the SDG formatted as a JSON will be printed to the console.")
+    @Option(names = { "-o",
+            "--output" }, description = "Destination directory to save the output graphs. By default, the SDG formatted as a JSON will be printed to the console.")
     private static String output;
 
-    @Option(names = {"-b", "--build-cmd"}, description = "Custom build command. Defaults to auto build.")
+    @Option(names = { "-b", "--build-cmd" }, description = "Custom build command. Defaults to auto build.")
     private static String build;
 
-    @Option(names = {"--no-build"}, description = "Do not build your application. Use this option if you have already built your application.")
+    @Option(names = {
+            "--no-build" }, description = "Do not build your application. Use this option if you have already built your application.")
     private static boolean noBuild = false;
 
-    @Option(names = {"--no-clean-dependencies"}, description = "Do not attempt to auto-clean dependencies")
+    @Option(names = { "--no-clean-dependencies" }, description = "Do not attempt to auto-clean dependencies")
     public static boolean noCleanDependencies = false;
 
-    @Option(names = {"-f", "--project-root-path"}, description = "Path to the root pom.xml/build.gradle file of the project.")
+    @Option(names = { "-f",
+            "--project-root-path" }, description = "Path to the root pom.xml/build.gradle file of the project.")
     public static String projectRootPom;
 
-    @Option(names = {"-a", "--analysis-level"}, description = "Level of analysis to perform. Options: 1 (for just symbol table) or 2 (for call graph). Default: 1")
+    @Option(names = { "-a",
+            "--analysis-level" }, description = "Level of analysis to perform. Options: 1 (for just symbol table) or 2 (for call graph). Default: 1")
     private static int analysisLevel = 1;
 
-    @Option(names = {"-v", "--verbose"}, description = "Print logs to console.")
+    @Option(names = { "--include-test-classes" }, hidden = true, description = "Print logs to console.")
+    public static boolean includeTestClasses = false;
+
+    @Option(names = { "-v", "--verbose" }, description = "Print logs to console.")
     private static boolean verbose = false;
 
     private static final String outputFileName = "analysis.json";
@@ -121,11 +130,13 @@ public class CodeAnalyzer implements Runnable {
         JsonObject combinedJsonObject = new JsonObject();
         Map<String, JavaCompilationUnit> symbolTable;
         projectRootPom = projectRootPom == null ? input : projectRootPom;
-        // First of all if, sourceAnalysis is provided, we will analyze the source code instead of the project.
+        // First of all if, sourceAnalysis is provided, we will analyze the source code
+        // instead of the project.
         if (sourceAnalysis != null) {
             // Construct symbol table for source code
             Log.debug("Single file analysis.");
-            Pair<Map<String, JavaCompilationUnit>, Map<String, List<Problem>>> symbolTableExtractionResult = SymbolTable.extractSingle(sourceAnalysis);
+            Pair<Map<String, JavaCompilationUnit>, Map<String, List<Problem>>> symbolTableExtractionResult = SymbolTable
+                    .extractSingle(sourceAnalysis);
             symbolTable = symbolTableExtractionResult.getLeft();
         } else {
             // download library dependencies of project for type resolution
@@ -140,9 +151,11 @@ public class CodeAnalyzer implements Runnable {
                 Log.warn("Failed to download library dependencies of project");
             }
 
-            boolean analysisFileExists = output != null && Files.exists(Paths.get(output + File.separator + outputFileName));
+            boolean analysisFileExists = output != null
+                    && Files.exists(Paths.get(output + File.separator + outputFileName));
 
-            // if target files are specified, compute symbol table information for the given files
+            // if target files are specified, compute symbol table information for the given
+            // files
             if (targetFiles != null) {
                 Log.info(targetFiles.size() + "target files specified for analysis: " + targetFiles);
 
@@ -154,17 +167,22 @@ public class CodeAnalyzer implements Runnable {
                 }
 
                 // Previous code was pointing to toList, which has been introduced in Java 16
-                // symbolTable = SymbolTable.extract(Paths.get(input), targetFiles.stream().map(Paths::get).toList()).getLeft();
+                // symbolTable = SymbolTable.extract(Paths.get(input),
+                // targetFiles.stream().map(Paths::get).toList()).getLeft();
                 // extract symbol table for the specified files
-                symbolTable = SymbolTable.extract(Paths.get(input), targetFiles.stream().map(Paths::get).collect(Collectors.toList())).getLeft();
+                symbolTable = SymbolTable
+                        .extract(Paths.get(input), targetFiles.stream().map(Paths::get).collect(Collectors.toList()))
+                        .getLeft();
 
-                // if analysis file exists, update it with new symbol table information for the specified fiels
+                // if analysis file exists, update it with new symbol table information for the
+                // specified fiels
                 if (analysisFileExists) {
                     // read symbol table information from existing analysis file
                     Map<String, JavaCompilationUnit> existingSymbolTable = readSymbolTableFromFile(
                             new File(output, outputFileName));
                     if (existingSymbolTable != null) {
-                        // for each file, tag its symbol table information as "updated" and update existing symbol table
+                        // for each file, tag its symbol table information as "updated" and update
+                        // existing symbol table
                         for (String targetFile : targetFiles) {
                             String targetPathAbs = Paths.get(targetFile).toAbsolutePath().toString();
                             JavaCompilationUnit javaCompilationUnit = symbolTable.get(targetPathAbs);
@@ -175,16 +193,18 @@ public class CodeAnalyzer implements Runnable {
                     symbolTable = existingSymbolTable;
                 }
             } else {
-                // construct symbol table for project, write parse problems to file in output directory if specified
-                Pair<Map<String, JavaCompilationUnit>, Map<String, List<Problem>>> symbolTableExtractionResult
-                        = SymbolTable.extractAll(Paths.get(input));
+                // construct symbol table for project, write parse problems to file in output
+                // directory if specified
+                Pair<Map<String, JavaCompilationUnit>, Map<String, List<Problem>>> symbolTableExtractionResult = SymbolTable
+                        .extractAll(Paths.get(input));
 
                 symbolTable = symbolTableExtractionResult.getLeft();
             }
 
             if (analysisLevel > 1) {
                 // Save SDG, and Call graph as JSON
-                // If noBuild is not true, and build is also not provided, we will use "auto" as the build command
+                // If noBuild is not true, and build is also not provided, we will use "auto" as
+                // the build command
                 build = build == null ? "auto" : build;
                 // Is noBuild is true, we will not build the project
                 build = noBuild ? null : build;

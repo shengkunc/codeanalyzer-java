@@ -1,7 +1,5 @@
 package com.ibm.cldk.utils;
 
-import com.ibm.cldk.CodeAnalyzer;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -17,6 +15,7 @@ import java.util.stream.Stream;
 import static com.ibm.cldk.utils.ProjectDirectoryScanner.classFilesStream;
 import static com.ibm.cldk.CodeAnalyzer.projectRootPom;
 import static com.ibm.cldk.CodeAnalyzer.noCleanDependencies;
+import static com.ibm.cldk.CodeAnalyzer.includeTestClasses;
 
 public class BuildProject {
     public static Path libDownloadPath;
@@ -140,7 +139,14 @@ public class BuildProject {
             Log.info("Checking if Maven is installed.");
             return false;
         }
-        String[] mavenCommand = {MAVEN_CMD, "clean", "compile", "-f", projectPath + "/pom.xml", "-B", "-V", "-e", "-Drat.skip", "-Dfindbugs.skip", "-Dcheckstyle.skip", "-Dpmd.skip=true", "-Dspotbugs.skip", "-Denforcer.skip", "-Dmaven.javadoc.skip", "-DskipTests", "-Dmaven.test.skip.exec", "-Dlicense.skip=true", "-Drat.skip=true", "-Dspotless.check.skip=true"};
+
+        String[] mavenCommand;
+        if (includeTestClasses) {
+            Log.warn("Hidden flag `--include-test-classes` is turned on. We'll including test classes in WALA analysis");
+            mavenCommand = new String[]{MAVEN_CMD, "clean", "test-compile", "-f", projectPath + "/pom.xml", "-B", "-V", "-e", "-Drat.skip", "-Dfindbugs.skip", "-Dcheckstyle.skip", "-Dpmd.skip=true", "-Dspotbugs.skip", "-Denforcer.skip", "-Dmaven.javadoc.skip", "-DskipTests", "-Dmaven.test.skip.exec", "-Dlicense.skip=true", "-Drat.skip=true", "-Dspotless.check.skip=true"};
+        }
+        else
+            mavenCommand = new String[]{MAVEN_CMD, "clean", "compile", "-f", projectPath + "/pom.xml", "-B", "-V", "-e", "-Drat.skip", "-Dfindbugs.skip", "-Dcheckstyle.skip", "-Dpmd.skip=true", "-Dspotbugs.skip", "-Denforcer.skip", "-Dmaven.javadoc.skip", "-DskipTests", "-Dmaven.test.skip.exec", "-Dlicense.skip=true", "-Drat.skip=true", "-Dspotless.check.skip=true"};
 
         return buildWithTool(mavenCommand);
     }
@@ -151,7 +157,12 @@ public class BuildProject {
         if (GRADLE_CMD.equals("gradlew") || GRADLE_CMD.equals("gradlew.bat")) {
             gradleCommand = new String[]{projectPath + File.separator + GRADLE_CMD, "clean", "compileJava", "-p", projectPath};
         } else {
-            gradleCommand = new String[]{GRADLE_CMD, "clean", "compileJava", "-p", projectPath};
+            if (includeTestClasses) {
+                Log.warn("Hidden flag `--include-test-classes` is turned on. We'll including test classes in WALA analysis");
+                gradleCommand = new String[]{GRADLE_CMD, "clean", "compileTestJava", "-p", projectPath};
+            }
+            else
+                gradleCommand = new String[]{GRADLE_CMD, "clean", "compileJava", "-p", projectPath};
         }
         return buildWithTool(gradleCommand);
     }
