@@ -1,5 +1,28 @@
 package com.ibm.cldk;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import com.github.javaparser.ast.body.*;
+import com.github.javaparser.ast.comments.Comment;
+import com.github.javaparser.ast.comments.JavadocComment;
+import com.github.javaparser.ast.nodeTypes.NodeWithJavadoc;
+import com.github.javaparser.ast.stmt.*;
+import org.apache.commons.lang3.tuple.Pair;
+
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
@@ -8,10 +31,16 @@ import com.github.javaparser.ast.AccessSpecifier;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.body.*;
-import com.github.javaparser.ast.expr.*;
+import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.expr.AssignExpr;
+import com.github.javaparser.ast.expr.CastExpr;
+import com.github.javaparser.ast.expr.ConditionalExpr;
+import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.FieldAccessExpr;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NameExpr;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.nodeTypes.NodeWithName;
-import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.ReferenceType;
 import com.github.javaparser.ast.type.Type;
@@ -27,19 +56,22 @@ import com.github.javaparser.utils.ProjectRoot;
 import com.github.javaparser.utils.SourceRoot;
 import com.google.common.collect.Table;
 import com.google.common.collect.Tables;
+import com.ibm.cldk.entities.CRUDOperation;
+import com.ibm.cldk.entities.CRUDQuery;
+import com.ibm.cldk.entities.CallSite;
+import com.ibm.cldk.entities.Callable;
+import com.ibm.cldk.entities.EnumConstant;
+import com.ibm.cldk.entities.Field;
+import com.ibm.cldk.entities.InitializationBlock;
+import com.ibm.cldk.entities.JavaCompilationUnit;
+import com.ibm.cldk.entities.ParameterInCallable;
+import com.ibm.cldk.entities.RecordComponent;
+import com.ibm.cldk.entities.VariableDeclaration;
 import com.ibm.cldk.javaee.CRUDFinderFactory;
 import com.ibm.cldk.javaee.utils.enums.CRUDOperationType;
 import com.ibm.cldk.javaee.utils.enums.CRUDQueryType;
-import com.ibm.cldk.entities.*;
 import com.ibm.cldk.utils.Log;
-import org.apache.commons.lang3.tuple.Pair;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("rawtypes")
 public class SymbolTable {
@@ -57,192 +89,316 @@ public class SymbolTable {
      * @return JSON object containing extracted information
      */
     // Let's store the known callables here for future use.
-    public static Table<String, String, Callable> declaredMethodsAndConstructors = Tables.newCustomTable(new HashMap<>(), () -> new HashMap<>() {
-        @Override
-        public Callable get(Object key) {
-            if (key instanceof String) {
-                Optional<Entry<String, Callable>> matchingEntry = this.entrySet().stream().filter(entry -> isMethodSignatureMatch((String) key, entry.getKey())).findFirst();
-                if (matchingEntry.isPresent()) {
-                    return matchingEntry.get().getValue();
+    public static Table<String, String, Callable> declaredMethodsAndConstructors = Tables
+            .newCustomTable(new HashMap<>(), () -> new HashMap<>() {
+                @Override
+                public Callable get(Object key) {
+                    if (key instanceof String) {
+                        Optional<Entry<String, Callable>> matchingEntry = this.entrySet().stream()
+                                .filter(entry -> isMethodSignatureMatch((String) key, entry.getKey())).findFirst();
+                        if (matchingEntry.isPresent()) {
+                            return matchingEntry.get().getValue();
+                        }
+                    }
+                    return super.get(key);
                 }
-            }
-            return super.get(key);
-        }
 
-        private boolean isMethodSignatureMatch(String fullSignature, String searchSignature) {
-            String methodName = fullSignature.split("\\(")[0];
-            String searchMethodName = searchSignature.split("\\(")[0];
+                private boolean isMethodSignatureMatch(String fullSignature, String searchSignature) {
+                    String methodName = fullSignature.split("\\(")[0];
+                    String searchMethodName = searchSignature.split("\\(")[0];
 
-            // Check method name match
-            if (!methodName.equals(searchMethodName)) {
-                return false;
-            }
+                    // Check method name match
+                    if (!methodName.equals(searchMethodName)) {
+                        return false;
+                    }
 
-            // Extract parameters, split by comma, and trim
-            String[] fullParams = fullSignature.substring(fullSignature.indexOf("(") + 1, fullSignature.lastIndexOf(")")).split(",");
-            String[] searchParams = searchSignature.substring(searchSignature.indexOf("(") + 1, searchSignature.lastIndexOf(")")).split(",");
+                    // Extract parameters, split by comma, and trim
+                    String[] fullParams = fullSignature
+                            .substring(fullSignature.indexOf("(") + 1, fullSignature.lastIndexOf(")")).split(",");
+                    String[] searchParams = searchSignature
+                            .substring(searchSignature.indexOf("(") + 1, searchSignature.lastIndexOf(")")).split(",");
 
-            // Allow matching with fewer search parameters
-            if (searchParams.length != fullParams.length) {
-                return false;
-            }
+                    // Allow matching with fewer search parameters
+                    if (searchParams.length != fullParams.length) {
+                        return false;
+                    }
 
-            return IntStream.range(0, searchParams.length).allMatch(i -> {
-                String fullParamTrimmed = fullParams[i].trim();
-                String searchParamTrimmed = searchParams[i].trim();
-                return fullParamTrimmed.endsWith(searchParamTrimmed);
+                    return IntStream.range(0, searchParams.length).allMatch(i -> {
+                        String fullParamTrimmed = fullParams[i].trim();
+                        String searchParamTrimmed = searchParams[i].trim();
+                        return fullParamTrimmed.endsWith(searchParamTrimmed);
+                    });
+                }
             });
-        }
-    });
 
     private static JavaCompilationUnit processCompilationUnit(CompilationUnit parseResult) {
         JavaCompilationUnit cUnit = new JavaCompilationUnit();
 
         cUnit.setFilePath(parseResult.getStorage().map(s -> s.getPath().toString()).orElse("<in-memory>"));
 
-        // Add the comment field to the compilation unit
-        cUnit.setComment(parseResult.getComment().isPresent() ? parseResult.getComment().get().asString() : "");
+        // Set file level comment
+        parseResult.getAllComments().stream().findFirst().ifPresent(c -> {
+            com.ibm.cldk.entities.Comment fileComment = new com.ibm.cldk.entities.Comment();
+            fileComment.setContent(c.getContent());
+            fileComment.setStartLine(c.getRange().isPresent() ? c.getRange().get().begin.line : -1);
+            fileComment.setEndLine(c.getRange().isPresent() ? c.getRange().get().end.line : -1);
+            fileComment.setStartColumn(c.getRange().isPresent() ? c.getRange().get().begin.column : -1);
+            fileComment.setEndColumn(c.getRange().isPresent() ? c.getRange().get().end.column : -1);
+            fileComment.setJavadoc(c.isJavadocComment());
+            cUnit.getComments().add(fileComment);
+        });
 
+        // Add class comment
+        cUnit.setComments(
+                parseResult.getAllComments().stream().map(c -> {
+                            com.ibm.cldk.entities.Comment fileComment = new com.ibm.cldk.entities.Comment();
+                            fileComment.setContent(c.getContent());
+                            fileComment.setStartLine(c.getRange().isPresent() ? c.getRange().get().begin.line : -1);
+                            fileComment.setEndLine(c.getRange().isPresent() ? c.getRange().get().end.line : -1);
+                            fileComment.setStartColumn(c.getRange().isPresent() ? c.getRange().get().begin.column : -1);
+                            fileComment.setEndColumn(c.getRange().isPresent() ? c.getRange().get().end.column : -1);
+                            fileComment.setJavadoc(c.isJavadocComment());
+                            return fileComment;
+                        })
+                        .collect(Collectors.toList()));
+
+        // Set package name
+        cUnit.setPackageName(parseResult.getPackageDeclaration().map(NodeWithName::getNameAsString).orElse(""));
+        // Add javadoc comment
         // Add imports
-        cUnit.setImports(parseResult.getImports().stream().map(NodeWithName::getNameAsString).collect(Collectors.toList()));
+        cUnit.setImports(
+                parseResult.getImports().stream().map(NodeWithName::getNameAsString).collect(Collectors.toList()));
 
         // create array node for type declarations
-        cUnit.setTypeDeclarations(parseResult.findAll(TypeDeclaration.class).stream().filter(typeDecl -> typeDecl.getFullyQualifiedName().isPresent()).map(typeDecl -> {
-            // get type name and initialize the type object
-            String typeName = typeDecl.getFullyQualifiedName().get().toString();
-            com.ibm.cldk.entities.Type typeNode = new com.ibm.cldk.entities.Type();;
-            if (typeDecl instanceof ClassOrInterfaceDeclaration) {
-                ClassOrInterfaceDeclaration classDecl = (ClassOrInterfaceDeclaration) typeDecl;
+        cUnit.setTypeDeclarations(parseResult.findAll(TypeDeclaration.class).stream()
+                .filter(typeDecl -> typeDecl.getFullyQualifiedName().isPresent()).map(typeDecl -> {
+                    // get type name and initialize the type object
+                    String typeName = typeDecl.getFullyQualifiedName().get().toString();
+                    com.ibm.cldk.entities.Type typeNode = new com.ibm.cldk.entities.Type();
 
-                // Add interfaces implemented by class
-                typeNode.setImplementsList(classDecl.getImplementedTypes().stream().map(SymbolTable::resolveType).collect(Collectors.toList()));
+                    if (typeDecl instanceof ClassOrInterfaceDeclaration) {
+                        ClassOrInterfaceDeclaration classDecl = (ClassOrInterfaceDeclaration) typeDecl;
 
-                // Add class modifiers
-                typeNode.setModifiers(classDecl.getModifiers().stream().map(m -> m.toString().strip()).collect(Collectors.toList()));
+                        // Add interfaces implemented by class
+                        typeNode.setImplementsList(classDecl.getImplementedTypes().stream()
+                                .map(SymbolTable::resolveType).collect(Collectors.toList()));
 
-                // Add class annotations
-                typeNode.setAnnotations(classDecl.getAnnotations().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
+                        // Add class modifiers
+                        typeNode.setModifiers(classDecl.getModifiers().stream().map(m -> m.toString().strip())
+                                .collect(Collectors.toList()));
 
-                // add booleans indicating interfaces and inner/local classes
-                typeNode.setInterface(classDecl.isInterface());
-                typeNode.setInnerClass(classDecl.isInnerClass());
-                typeNode.setLocalClass(classDecl.isLocalClassDeclaration());
+                        // Add class annotations
+                        typeNode.setAnnotations(classDecl.getAnnotations().stream().map(a -> a.toString().strip())
+                                .collect(Collectors.toList()));
 
-                // Add extends
-                typeNode.setExtendsList(classDecl.getExtendedTypes().stream().map(SymbolTable::resolveType).collect(Collectors.toList()));
+                        // add booleans indicating interfaces and inner/local classes
+                        typeNode.setInterface(classDecl.isInterface());
+                        typeNode.setInnerClass(classDecl.isInnerClass());
+                        typeNode.setLocalClass(classDecl.isLocalClassDeclaration());
 
-            } else if (typeDecl instanceof EnumDeclaration) {
-                EnumDeclaration enumDecl = (EnumDeclaration) typeDecl;
+                        // Add extends
+                        typeNode.setExtendsList(classDecl.getExtendedTypes().stream().map(SymbolTable::resolveType)
+                                .collect(Collectors.toList()));
 
-                // Add interfaces implemented by enum
-                typeNode.setImplementsList(enumDecl.getImplementedTypes().stream().map(SymbolTable::resolveType).collect(Collectors.toList()));
+                    } else if (typeDecl instanceof EnumDeclaration) {
+                        EnumDeclaration enumDecl = (EnumDeclaration) typeDecl;
 
-                // Add enum modifiers
-                typeNode.setModifiers(enumDecl.getModifiers().stream().map(m -> m.toString().strip()).collect(Collectors.toList()));
+                        // Add interfaces implemented by enum
+                        typeNode.setImplementsList(enumDecl.getImplementedTypes().stream().map(SymbolTable::resolveType)
+                                .collect(Collectors.toList()));
 
-                // Add enum annotations
-                typeNode.setAnnotations(enumDecl.getAnnotations().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
+                        // Add enum modifiers
+                        typeNode.setModifiers(enumDecl.getModifiers().stream().map(m -> m.toString().strip())
+                                .collect(Collectors.toList()));
 
-                // Add enum constants
-                typeNode.setEnumConstants(enumDecl.getEntries().stream().map(SymbolTable::processEnumConstantDeclaration).collect(Collectors.toList()));
-            }
-            else if (typeDecl instanceof RecordDeclaration) {
-                RecordDeclaration recordDecl = (RecordDeclaration) typeDecl;
+                        // Add enum annotations
+                        typeNode.setAnnotations(enumDecl.getAnnotations().stream().map(a -> a.toString().strip())
+                                .collect(Collectors.toList()));
 
-                // Set that this is a record declaration
-                typeNode.setRecordDeclaration(typeDecl.isRecordDeclaration());
+                        // Add enum constants
+                        typeNode.setEnumConstants(enumDecl.getEntries().stream()
+                                .map(SymbolTable::processEnumConstantDeclaration).collect(Collectors.toList()));
+                    } else if (typeDecl instanceof RecordDeclaration) {
+                        RecordDeclaration recordDecl = (RecordDeclaration) typeDecl;
 
-                // Add interfaces implemented by record
-                typeNode.setImplementsList(recordDecl.getImplementedTypes().stream().map(SymbolTable::resolveType).collect(Collectors.toList()));
+                        // Set that this is a record declaration
+                        typeNode.setRecordDeclaration(typeDecl.isRecordDeclaration());
 
-                // Add record modifiers
-                typeNode.setModifiers(recordDecl.getModifiers().stream().map(m -> m.toString().strip()).collect(Collectors.toList()));
+                        // Add interfaces implemented by record
+                        typeNode.setImplementsList(recordDecl.getImplementedTypes().stream()
+                                .map(SymbolTable::resolveType).collect(Collectors.toList()));
 
-                // Add record annotations
-                typeNode.setAnnotations(recordDecl.getAnnotations().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
+                        // Add record modifiers
+                        typeNode.setModifiers(recordDecl.getModifiers().stream().map(m -> m.toString().strip())
+                                .collect(Collectors.toList()));
 
-                // Add record components
-                typeNode.setRecordComponents(processRecordComponents(recordDecl));
-            }
-            else {
-                // TODO: handle AnnotationDeclaration, RecordDeclaration
-                // set the common type attributes only
-                Log.warn("Found unsupported type declaration: " + typeDecl.toString());
-                typeNode = new com.ibm.cldk.entities.Type();
-            }
+                        // Add record annotations
+                        typeNode.setAnnotations(recordDecl.getAnnotations().stream().map(a -> a.toString().strip())
+                                .collect(Collectors.toList()));
 
-            /* set common attributes of types that available in type declarations:
-            is nested type, is class or interface declaration, is enum declaration,
-            comments, parent class, callable declarations, field declarations
-            */
-            // Discover initialization blocks
-            typeNode.setInitializationBlocks(typeDecl.findAll(InitializerDeclaration.class).stream()
-                    .map(initializerDeclaration -> {
-                        return createInitializationBlock(initializerDeclaration, parseResult.getStorage().map(s -> s.getPath().toString()).orElse("<in-memory>"));
-                    })
-                    .collect(Collectors.toList()));
-            // Set fields indicating nested, class/interface, enum, annotation, and record types
-            typeNode.setNestedType(typeDecl.isNestedType());
-            typeNode.setClassOrInterfaceDeclaration(typeDecl.isClassOrInterfaceDeclaration());
-            typeNode.setEnumDeclaration(typeDecl.isEnumDeclaration());
-            typeNode.setAnnotationDeclaration(typeDecl.isAnnotationDeclaration());
+                        // Add record components
+                        typeNode.setRecordComponents(processRecordComponents(recordDecl));
+                    } else {
+                        // TODO: handle AnnotationDeclaration, RecordDeclaration
+                        // set the common type attributes only
+                        Log.warn("Found unsupported type declaration: " + typeDecl.toString());
+                        typeNode = new com.ibm.cldk.entities.Type();
+                    }
 
-            // Add class comment
-            typeNode.setComment(typeDecl.getComment().isPresent() ? typeDecl.getComment().get().asString() : "");
+                    /*
+                     * set common attributes of types that available in type declarations:
+                     * is nested type, is class or interface declaration, is enum declaration,
+                     * comments, parent class, callable declarations, field declarations
+                     */
+                    // Discover initialization blocks
+                    typeNode.setInitializationBlocks(typeDecl.findAll(InitializerDeclaration.class).stream()
+                            .map(initializerDeclaration -> {
+                                return createInitializationBlock(initializerDeclaration, parseResult.getStorage()
+                                        .map(s -> s.getPath().toString()).orElse("<in-memory>"));
+                            })
+                            .collect(Collectors.toList()));
+                    // Set fields indicating nested, class/interface, enum, annotation, and record
+                    // types
+                    typeNode.setNestedType(typeDecl.isNestedType());
+                    typeNode.setClassOrInterfaceDeclaration(typeDecl.isClassOrInterfaceDeclaration());
+                    typeNode.setEnumDeclaration(typeDecl.isEnumDeclaration());
+                    typeNode.setAnnotationDeclaration(typeDecl.isAnnotationDeclaration());
 
-            // add parent class (for nested type declarations)
-            typeNode.setParentType(typeDecl.getParentNode().get() instanceof TypeDeclaration ? ((TypeDeclaration<TypeDeclaration<?>>) typeDecl.getParentNode().get()).getFullyQualifiedName().get() : "");
+                    // Add class comment
+                    typeNode.setComments(
+                            typeDecl.getAllContainedComments().stream()
+//                            .filter(c -> c.getParentNode().isEmpty() || (c.getParentNode().isPresent() && parseResult.getPrimaryType().get().equals(c.getCommentedNode().get())))
+                            .map(c -> {
+                                com.ibm.cldk.entities.Comment typeNodeComment = new com.ibm.cldk.entities.Comment();
+                                typeNodeComment.setContent(c.getContent());
+                                typeNodeComment.setStartLine(c.getRange().isPresent() ? c.getRange().get().begin.line : -1);
+                                typeNodeComment.setEndLine(c.getRange().isPresent() ? c.getRange().get().end.line : -1);
+                                typeNodeComment.setStartColumn(c.getRange().isPresent() ? c.getRange().get().begin.column : -1);
+                                typeNodeComment.setEndColumn(c.getRange().isPresent() ? c.getRange().get().end.column : -1);
+                                typeNodeComment.setJavadoc(c.isJavadocComment());
+                                return typeNodeComment;
+                            })
+                            .collect(Collectors.toList()));
 
-            typeNode.setNestedTypeDeclarations(typeDecl.findAll(TypeDeclaration.class).stream().filter(typ -> typ.isClassOrInterfaceDeclaration() || typ.isEnumDeclaration()).filter(typ -> typ.getParentNode().isPresent() && typ.getParentNode().get() == typeDecl).map(typ -> typ.getFullyQualifiedName().get().toString()).collect(Collectors.toList()));
+                    // Get JavaDoc comments
+                    // Check to see if there is a java doc comment if so, add it to the comments list
+                    if (getJavadoc(typeDecl).isPresent()) {
+                        typeNode.getComments().add(getJavadoc(typeDecl).get());
+                    }
 
-            // Add information about declared fields (filtering to fields declared in the
-            // type, not in a nested type)
-            typeNode.setFieldDeclarations(typeDecl.findAll(FieldDeclaration.class).stream().filter(f -> f.getParentNode().isPresent() && f.getParentNode().get() == typeDecl).map(SymbolTable::processFieldDeclaration).collect(Collectors.toList()));
-            List<String> fieldNames = new ArrayList<>();
-            typeNode.getFieldDeclarations().stream().map(fd -> fd.getVariables()).forEach(fieldNames::addAll);
+                    // add parent class (for nested type declarations)
+                    typeNode.setParentType(typeDecl.getParentNode().get() instanceof TypeDeclaration
+                            ? ((TypeDeclaration<TypeDeclaration<?>>) typeDecl.getParentNode().get())
+                                    .getFullyQualifiedName().get()
+                            : "");
 
-            // Add information about declared methods (filtering to methods declared in the class, not in a nested class)
-            typeNode.setCallableDeclarations(typeDecl.findAll(CallableDeclaration.class).stream().filter(c -> c.getParentNode().isPresent() && c.getParentNode().get() == typeDecl).map(meth -> {
-                Pair<String, Callable> callableDeclaration = processCallableDeclaration(meth, fieldNames, typeName, parseResult.getStorage().map(s -> s.getPath().toString()).orElse("<in-memory>"));
-                declaredMethodsAndConstructors.put(typeName, callableDeclaration.getLeft(), callableDeclaration.getRight());
-                return callableDeclaration;
-            }).collect(Collectors.toMap(p -> p.getLeft(), p -> p.getRight())));
+                    typeNode.setNestedTypeDeclarations(typeDecl.findAll(TypeDeclaration.class).stream()
+                            .filter(typ -> typ.isClassOrInterfaceDeclaration() || typ.isEnumDeclaration())
+                            .filter(typ -> typ.getParentNode().isPresent() && typ.getParentNode().get() == typeDecl)
+                            .map(typ -> typ.getFullyQualifiedName().get().toString()).collect(Collectors.toList()));
 
-            // Add information about if the TypeNode is an entry point class
-            typeNode.setEntrypointClass(isEntryPointClass(typeDecl));
+                    // Add information about declared fields (filtering to fields declared in the
+                    // type, not in a nested type)
+                    typeNode.setFieldDeclarations(typeDecl.findAll(FieldDeclaration.class).stream()
+                            .filter(f -> f.getParentNode().isPresent() && f.getParentNode().get() == typeDecl)
+                            .map(SymbolTable::processFieldDeclaration).collect(Collectors.toList()));
+                    List<String> fieldNames = new ArrayList<>();
+                    typeNode.getFieldDeclarations().stream().map(Field::getVariables).forEach(fieldNames::addAll);
 
-            return Pair.of(typeName, typeNode);
+                    // Add information about declared methods (filtering to methods declared in the
+                    // class, not in a nested class)
+                    typeNode.setCallableDeclarations(typeDecl.findAll(CallableDeclaration.class).stream()
+                            .filter(c -> c.getParentNode().isPresent() && c.getParentNode().get() == typeDecl)
+                            .map(meth -> {
+                                Pair<String, Callable> callableDeclaration = processCallableDeclaration(meth,
+                                        fieldNames, typeName, parseResult.getStorage().map(s -> s.getPath().toString())
+                                                .orElse("<in-memory>"));
+                                declaredMethodsAndConstructors.put(typeName, callableDeclaration.getLeft(),
+                                        callableDeclaration.getRight());
+                                return callableDeclaration;
+                            }).collect(Collectors.toMap(p -> p.getLeft(), p -> p.getRight())));
 
+                    // Add information about if the TypeNode is an entry point class
+                    typeNode.setEntrypointClass(isEntryPointClass(typeDecl));
 
-        }).collect(Collectors.toMap(p -> p.getLeft(), p -> p.getRight())));
+                    return Pair.of(typeName, typeNode);
+
+                }).collect(Collectors.toMap(p -> p.getLeft(), p -> p.getRight())));
 
         return cUnit;
     }
 
-    private static InitializationBlock createInitializationBlock(InitializerDeclaration initializerDeclaration, String filePath) {
+    private static InitializationBlock createInitializationBlock(InitializerDeclaration initializerDeclaration,
+            String filePath) {
         InitializationBlock initializationBlock = new InitializationBlock();
         initializationBlock.setFilePath(filePath);
-        initializationBlock.setComment(initializerDeclaration.getComment().isPresent() ? initializerDeclaration.getComment().get().asString() : "");
-        initializationBlock.setAnnotations(initializerDeclaration.getAnnotations().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
+
+        com.ibm.cldk.entities.Comment comment = new com.ibm.cldk.entities.Comment();
+
+        // Add class comment
+        initializationBlock.setComments(
+                initializerDeclaration.getAllContainedComments().stream()
+                        .map(c -> {
+                            com.ibm.cldk.entities.Comment typeNodeComment = new com.ibm.cldk.entities.Comment();
+                            typeNodeComment.setContent(c.getContent());
+                            typeNodeComment.setStartLine(c.getRange().isPresent() ? c.getRange().get().begin.line : -1);
+                            typeNodeComment.setEndLine(c.getRange().isPresent() ? c.getRange().get().end.line : -1);
+                            typeNodeComment.setStartColumn(c.getRange().isPresent() ? c.getRange().get().begin.column : -1);
+                            typeNodeComment.setEndColumn(c.getRange().isPresent() ? c.getRange().get().end.column : -1);
+                            typeNodeComment.setJavadoc(c.isJavadocComment());
+                            return typeNodeComment;
+                        })
+                        .collect(Collectors.toList()));
+
+        // Check to see if there is a java doc comment if so, add it to the comments list
+        getJavadoc(initializerDeclaration).ifPresent(value -> initializationBlock.getComments().add(value));
+
+
+        // Set annotations
+        initializationBlock.setAnnotations(initializerDeclaration.getAnnotations().stream()
+                .map(a -> a.toString().strip()).collect(Collectors.toList()));
         // add exceptions declared in "throws" clause
-        initializationBlock.setThrownExceptions(initializerDeclaration.getBody().getStatements().stream().filter(Statement::isThrowStmt).map(throwStmt -> {
-            try {
-                return javaSymbolSolver.calculateType(throwStmt.asThrowStmt().getExpression()).describe();
-            } catch (Exception e) {
-                return throwStmt.asThrowStmt().getExpression().toString();
-            }
-        }).collect(Collectors.toList()));
+        initializationBlock.setThrownExceptions(initializerDeclaration.getBody().getStatements().stream()
+                .filter(Statement::isThrowStmt).map(throwStmt -> {
+                    try {
+                        return javaSymbolSolver.calculateType(throwStmt.asThrowStmt().getExpression()).describe();
+                    } catch (Exception e) {
+                        return throwStmt.asThrowStmt().getExpression().toString();
+                    }
+                }).collect(Collectors.toList()));
         initializationBlock.setCode(initializerDeclaration.getBody().toString());
-        initializationBlock.setStartLine(initializerDeclaration.getRange().isPresent() ? initializerDeclaration.getRange().get().begin.line : -1);
-        initializationBlock.setEndLine(initializerDeclaration.getRange().isPresent() ? initializerDeclaration.getRange().get().end.line : -1);
+        initializationBlock.setStartLine(
+                initializerDeclaration.getRange().isPresent() ? initializerDeclaration.getRange().get().begin.line
+                        : -1);
+        initializationBlock.setEndLine(
+                initializerDeclaration.getRange().isPresent() ? initializerDeclaration.getRange().get().end.line : -1);
         initializationBlock.setStatic(initializerDeclaration.isStatic());
-        initializationBlock.setReferencedTypes(getReferencedTypes(Optional.ofNullable(initializerDeclaration.getBody())));
-        initializationBlock.setAccessedFields(getAccessedFields(Optional.ofNullable(initializerDeclaration.getBody()), Collections.emptyList(), ""));
+        initializationBlock
+                .setReferencedTypes(getReferencedTypes(Optional.ofNullable(initializerDeclaration.getBody())));
+        initializationBlock.setAccessedFields(
+                getAccessedFields(Optional.ofNullable(initializerDeclaration.getBody()), Collections.emptyList(), ""));
         initializationBlock.setCallSites(getCallSites(Optional.ofNullable(initializerDeclaration.getBody())));
-        initializationBlock.setVariableDeclarations(getVariableDeclarations(Optional.ofNullable(initializerDeclaration.getBody())));
+        initializationBlock.setVariableDeclarations(
+                getVariableDeclarations(Optional.ofNullable(initializerDeclaration.getBody())));
         initializationBlock.setCyclomaticComplexity(getCyclomaticComplexity(initializerDeclaration));
         return initializationBlock;
     }
+
+    private static Optional<com.ibm.cldk.entities.Comment> getJavadoc(NodeWithJavadoc bodyDeclaration) {
+        Optional<JavadocComment> javadocComment = bodyDeclaration.getJavadocComment();
+        if (!javadocComment.isPresent()) {
+            return Optional.empty();
+        }
+        com.ibm.cldk.entities.Comment javadoc = new com.ibm.cldk.entities.Comment();
+        javadoc.setContent(javadocComment.get().getContent().isEmpty() || javadocComment.get().getContent().isBlank() ? "" : javadocComment.get().getContent());
+        javadoc.setStartLine(javadocComment.get().getRange().get().begin.line);
+        javadoc.setEndLine(javadocComment.get().getRange().get().end.line);
+        javadoc.setStartColumn(javadocComment.get().getRange().get().begin.column);
+        javadoc.setEndColumn(javadocComment.get().getRange().get().end.column);
+        javadoc.setJavadoc(!(javadocComment.get().getContent().isEmpty() && javadocComment.get().getContent().isBlank()));
+        return Optional.of(javadoc);
+    }
+
     /**
      * Processes the given record to extract information about the
      * declared field and returns a JSON object containing the extracted
@@ -255,15 +411,37 @@ public class SymbolTable {
         return recordDecl.getParameters().stream().map(
                 parameter -> {
                     RecordComponent recordComponent = new RecordComponent();
+                    com.ibm.cldk.entities.Comment comment = new com.ibm.cldk.entities.Comment();
+                    if (parameter.getComment().isPresent()) {
+                        Comment parsedComment = parameter.getComment().get();
+                        comment.setContent(parsedComment.getContent());
+                        parsedComment.getRange().ifPresent(range -> {
+                            comment.setStartLine(range.begin.line);
+                            comment.setEndLine(range.end.line);
+                            comment.setStartColumn(range.begin.column);
+                            comment.setEndColumn(range.end.column);
+                        });
+
+                    } else {
+                        comment.setContent("");
+                        comment.setStartLine(-1);
+                        comment.setEndLine(-1);
+                        comment.setStartColumn(-1);
+                        comment.setEndColumn(-1);
+                    }
+
+                    recordComponent.setComment(comment);
                     recordComponent.setName(parameter.getNameAsString());
                     recordComponent.setType(resolveType(parameter.getType()));
-                    recordComponent.setAnnotations(parameter.getAnnotations().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
-                    recordComponent.setModifiers(parameter.getModifiers().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
+                    recordComponent.setAnnotations(parameter.getAnnotations().stream().map(a -> a.toString().strip())
+                            .collect(Collectors.toList()));
+                    recordComponent.setModifiers(parameter.getModifiers().stream().map(a -> a.toString().strip())
+                            .collect(Collectors.toList()));
                     recordComponent.setVarArgs(parameter.isVarArgs());
-                    recordComponent.setDefaultValue(mapRecordConstructorDefaults(recordDecl).getOrDefault(parameter.getNameAsString(), null));
+                    recordComponent.setDefaultValue(
+                            mapRecordConstructorDefaults(recordDecl).getOrDefault(parameter.getNameAsString(), null));
                     return recordComponent;
-                }
-        ).collect(Collectors.toList());
+                }).collect(Collectors.toList());
     }
 
     private static Map<String, Object> mapRecordConstructorDefaults(RecordDeclaration recordDecl) {
@@ -273,19 +451,26 @@ public class SymbolTable {
                 .filter(assignExpr -> assignExpr.getTarget().isNameExpr()) // Ensure assignment is to a parameter
                 .collect(Collectors.toMap(
                         assignExpr -> assignExpr.getTarget().asNameExpr().getNameAsString(), // Key: Parameter Name
-                        assignExpr -> Optional.ofNullable(assignExpr.getValue()).map(valueExpr -> { // Value: Default Value
+                        assignExpr -> Optional.ofNullable(assignExpr.getValue()).map(valueExpr -> { // Value: Default
+                                                                                                    // Value
                             return valueExpr.isStringLiteralExpr() ? valueExpr.asStringLiteralExpr().asString()
                                     : valueExpr.isBooleanLiteralExpr() ? valueExpr.asBooleanLiteralExpr().getValue()
-                                    : valueExpr.isCharLiteralExpr() ? valueExpr.asCharLiteralExpr().getValue()
-                                    : valueExpr.isDoubleLiteralExpr() ? valueExpr.asDoubleLiteralExpr().asDouble()
-                                    : valueExpr.isIntegerLiteralExpr() ? valueExpr.asIntegerLiteralExpr().asNumber()
-                                    : valueExpr.isLongLiteralExpr() ? valueExpr.asLongLiteralExpr().asNumber()
-                                    : valueExpr.isNullLiteralExpr() ? null
-                                    : valueExpr.toString();}).orElse("null"))); // Default: store as a string
+                                            : valueExpr.isCharLiteralExpr() ? valueExpr.asCharLiteralExpr().getValue()
+                                                    : valueExpr.isDoubleLiteralExpr()
+                                                            ? valueExpr.asDoubleLiteralExpr().asDouble()
+                                                            : valueExpr.isIntegerLiteralExpr()
+                                                                    ? valueExpr.asIntegerLiteralExpr().asNumber()
+                                                                    : valueExpr.isLongLiteralExpr()
+                                                                            ? valueExpr.asLongLiteralExpr().asNumber()
+                                                                            : valueExpr.isNullLiteralExpr() ? null
+                                                                                    : valueExpr.toString();
+                        }).orElse("null"))); // Default: store as a string
     }
 
     private static boolean isEntryPointClass(TypeDeclaration typeDecl) {
-        return isSpringEntrypointClass(typeDecl) || isStrutsEntryPointClass(typeDecl) || isCamelEntryPointClass(typeDecl) || isJaxRSEntrypointClass(typeDecl) || isJakartaServletEntryPointClass(typeDecl);
+        return isSpringEntrypointClass(typeDecl) || isStrutsEntryPointClass(typeDecl)
+                || isCamelEntryPointClass(typeDecl) || isJaxRSEntrypointClass(typeDecl)
+                || isJakartaServletEntryPointClass(typeDecl);
 
     }
 
@@ -293,12 +478,19 @@ public class SymbolTable {
         List<AnnotationExpr> annotations = typeDeclaration.getAnnotations();
         for (AnnotationExpr annotation : annotations) {
             // Existing checks
-            if (annotation.getNameAsString().contains("RestController") || annotation.getNameAsString().contains("Controller") || annotation.getNameAsString().contains("HandleInterceptor") || annotation.getNameAsString().contains("HandlerInterceptor")) {
+            if (annotation.getNameAsString().contains("RestController")
+                    || annotation.getNameAsString().contains("Controller")
+                    || annotation.getNameAsString().contains("HandleInterceptor")
+                    || annotation.getNameAsString().contains("HandlerInterceptor")) {
                 return true;
             }
 
             // Spring Boot specific checks
-            if (annotation.getNameAsString().contains("SpringBootApplication") || annotation.getNameAsString().contains("Configuration") || annotation.getNameAsString().contains("Component") || annotation.getNameAsString().contains("Service") || annotation.getNameAsString().contains("Repository")) {
+            if (annotation.getNameAsString().contains("SpringBootApplication")
+                    || annotation.getNameAsString().contains("Configuration")
+                    || annotation.getNameAsString().contains("Component")
+                    || annotation.getNameAsString().contains("Service")
+                    || annotation.getNameAsString().contains("Repository")) {
                 return true;
             }
         }
@@ -320,7 +512,11 @@ public class SymbolTable {
     private static boolean isJaxRSEntrypointClass(TypeDeclaration typeDeclaration) {
         List<CallableDeclaration> callableDeclarations = typeDeclaration.findAll(CallableDeclaration.class);
         for (CallableDeclaration callableDeclaration : callableDeclarations) {
-            if (callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("POST")) || callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("PUT")) || callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("GET")) || callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("HEAD")) || callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("DELETE"))) {
+            if (callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("POST"))
+                    || callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("PUT"))
+                    || callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("GET"))
+                    || callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("HEAD"))
+                    || callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("DELETE"))) {
                 return true;
             }
         }
@@ -336,7 +532,8 @@ public class SymbolTable {
         ClassOrInterfaceDeclaration classDecl = (ClassOrInterfaceDeclaration) typeDeclaration;
 
         // Check class-level Struts annotations
-        if (classDecl.getAnnotations().stream().anyMatch(a -> a.getNameAsString().contains("Action") || a.getNameAsString().contains("Namespace") || a.getNameAsString().contains("InterceptorRef"))) {
+        if (classDecl.getAnnotations().stream().anyMatch(a -> a.getNameAsString().contains("Action")
+                || a.getNameAsString().contains("Namespace") || a.getNameAsString().contains("InterceptorRef"))) {
             return true;
         }
 
@@ -371,7 +568,8 @@ public class SymbolTable {
             ResolvedReferenceTypeDeclaration resolved = classDecl.resolve();
             return resolved.getAllAncestors().stream().anyMatch(ancestor -> {
                 String name = ancestor.getQualifiedName();
-                return name.contains("RouteBuilder") || name.contains("Processor") || name.contains("Producer") || name.contains("Consumer");
+                return name.contains("RouteBuilder") || name.contains("Processor") || name.contains("Producer")
+                        || name.contains("Consumer");
             });
         } catch (UnsolvedSymbolException e) {
             Log.warn("Could not resolve class: " + e.getMessage());
@@ -384,7 +582,8 @@ public class SymbolTable {
      * Checks if the given class is a Jakarta Servlet entry point class.
      *
      * @param typeDecl Type declaration to check
-     * @return True if the class is a Jakarta Servlet entry point class, false otherwise
+     * @return True if the class is a Jakarta Servlet entry point class, false
+     *         otherwise
      */
     private static boolean isJakartaServletEntryPointClass(TypeDeclaration typeDecl) {
         if (!(typeDecl instanceof ClassOrInterfaceDeclaration)) {
@@ -394,7 +593,11 @@ public class SymbolTable {
         ClassOrInterfaceDeclaration classDecl = (ClassOrInterfaceDeclaration) typeDecl;
 
         // Check annotations
-        if (classDecl.getAnnotations().stream().anyMatch(a -> a.getNameAsString().contains("WebServlet") || a.getNameAsString().contains("WebFilter") || a.getNameAsString().contains("WebListener") || a.getNameAsString().contains("ServerEndpoint") || a.getNameAsString().contains("MessageDriven") || a.getNameAsString().contains("WebService"))) {
+        if (classDecl.getAnnotations().stream()
+                .anyMatch(a -> a.getNameAsString().contains("WebServlet") || a.getNameAsString().contains("WebFilter")
+                        || a.getNameAsString().contains("WebListener") || a.getNameAsString().contains("ServerEndpoint")
+                        || a.getNameAsString().contains("MessageDriven")
+                        || a.getNameAsString().contains("WebService"))) {
             return true;
         }
 
@@ -403,7 +606,8 @@ public class SymbolTable {
                 .map(ClassOrInterfaceType::getNameAsString)
                 .anyMatch(name -> name.contains("HttpServlet") || name.contains("GenericServlet"))
                 || classDecl.getImplementedTypes().stream().map(
-                        ClassOrInterfaceType::asString).anyMatch(name -> name.contains("ServletContextListener")
+                        ClassOrInterfaceType::asString).anyMatch(
+                                name -> name.contains("ServletContextListener")
                                         || name.contains("HttpSessionListener")
                                         || name.contains("ServletRequestListener")
                                         || name.contains("MessageListener"));
@@ -422,7 +626,8 @@ public class SymbolTable {
         enumConstant.setName(enumConstDecl.getNameAsString());
 
         // add enum constant arguments
-        enumConstant.setArguments(enumConstDecl.getArguments().stream().map(a -> a.toString()).collect(Collectors.toList()));
+        enumConstant.setArguments(
+                enumConstDecl.getArguments().stream().map(Node::toString).collect(Collectors.toList()));
 
         return enumConstant;
     }
@@ -436,8 +641,10 @@ public class SymbolTable {
         ParameterInCallable parameter = new ParameterInCallable();
         parameter.setType(resolveType(paramDecl.getType()));
         parameter.setName(paramDecl.getName().toString());
-        parameter.setAnnotations(paramDecl.getAnnotations().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
-        parameter.setModifiers(paramDecl.getModifiers().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
+        parameter.setAnnotations(
+                paramDecl.getAnnotations().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
+        parameter.setModifiers(
+                paramDecl.getModifiers().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
         parameter.setStartLine(paramDecl.getRange().isPresent() ? paramDecl.getRange().get().begin.line : -1);
         parameter.setStartColumn(paramDecl.getRange().isPresent() ? paramDecl.getRange().get().begin.column : -1);
         parameter.setEndLine(paramDecl.getRange().isPresent() ? paramDecl.getRange().get().end.line : -1);
@@ -454,7 +661,8 @@ public class SymbolTable {
      * @return Callable object containing extracted information
      */
     @SuppressWarnings("unchecked")
-    private static Pair<String, Callable> processCallableDeclaration(CallableDeclaration callableDecl, List<String> classFields, String typeName, String filePath) {
+    private static Pair<String, Callable> processCallableDeclaration(CallableDeclaration callableDecl,
+            List<String> classFields, String typeName, String filePath) {
         Callable callableNode = new Callable();
 
         // Set file path
@@ -464,37 +672,60 @@ public class SymbolTable {
         callableNode.setSignature(callableDecl.getSignature().asString());
 
         // add comment associated with method/constructor
-        callableNode.setComment(callableDecl.getComment().isPresent() ? callableDecl.getComment().get().asString() : "");
+        callableNode.setComments(
+                callableDecl.getAllContainedComments().stream()
+                        .map(c -> {
+                            com.ibm.cldk.entities.Comment methodComment = new com.ibm.cldk.entities.Comment();
+                            methodComment.setContent(c.getContent());
+                            methodComment.setStartLine(c.getRange().isPresent() ? c.getRange().get().begin.line : -1);
+                            methodComment.setEndLine(c.getRange().isPresent() ? c.getRange().get().end.line : -1);
+                            methodComment.setStartColumn(c.getRange().isPresent() ? c.getRange().get().begin.column : -1);
+                            methodComment.setEndColumn(c.getRange().isPresent() ? c.getRange().get().end.column : -1);
+                            methodComment.setJavadoc(c.isJavadocComment());
+                            return methodComment;
+                        })
+                        .collect(Collectors.toList()));
+
+        // Check to see if there are JavaDoc comments
+        getJavadoc(callableDecl).ifPresent(value -> callableNode.getComments().add(value));
 
         // add annotations on method/constructor
-        callableNode.setAnnotations((List<String>) callableDecl.getAnnotations().stream().map(mod -> mod.toString().strip()).collect(Collectors.toList()));
+        callableNode.setAnnotations((List<String>) callableDecl.getAnnotations().stream()
+                .map(mod -> mod.toString().strip()).collect(Collectors.toList()));
 
         // add method or constructor modifiers
-        callableNode.setModifiers((List<String>) callableDecl.getModifiers().stream().map(mod -> mod.toString().strip()).collect(Collectors.toList()));
+        callableNode.setModifiers((List<String>) callableDecl.getModifiers().stream().map(mod -> mod.toString().strip())
+                .collect(Collectors.toList()));
 
         // add exceptions declared in "throws" clause
-        callableNode.setThrownExceptions(((NodeList<ReferenceType>) callableDecl.getThrownExceptions()).stream().map(SymbolTable::resolveType).collect(Collectors.toList()));
+        callableNode.setThrownExceptions(((NodeList<ReferenceType>) callableDecl.getThrownExceptions()).stream()
+                .map(SymbolTable::resolveType).collect(Collectors.toList()));
 
         // add the complete declaration string, including modifiers, throws, and
         // parameter names
-        callableNode.setDeclaration(callableDecl.getDeclarationAsString(true, true, true).strip().replaceAll("//.*\n", ""));
+        callableNode
+                .setDeclaration(callableDecl.getDeclarationAsString(true, true, true).strip().replaceAll("//.*\n", ""));
 
         // add information about callable parameters: for each parameter, type, name,
         // annotations,
         // modifiers
-        callableNode.setParameters((List<ParameterInCallable>) callableDecl.getParameters().stream().map(param -> processParameterDeclaration((Parameter) param)).collect(Collectors.toList()));
+        callableNode.setParameters((List<ParameterInCallable>) callableDecl.getParameters().stream()
+                .map(param -> processParameterDeclaration((Parameter) param)).collect(Collectors.toList()));
 
         callableNode.setEntrypoint(isEntryPointMethod(callableDecl));
+
         // A method declaration may not have a body if it is an abstract method. A
-        // constructor always
-        // has a body. So, we need to check if the body is present before processing it
-        // and capture it
-        // using the Optional type.
-        Optional<BlockStmt> body = (callableDecl instanceof MethodDeclaration) ? ((MethodDeclaration) callableDecl).getBody() : Optional.ofNullable(((ConstructorDeclaration) callableDecl).getBody());
+        // constructor always has a body. So, we need to check if the body is present before processing it
+        // and capture it using the Optional type.
+        Optional<BlockStmt> body = (callableDecl instanceof MethodDeclaration)
+                ? ((MethodDeclaration) callableDecl).getBody()
+                : Optional.ofNullable(((ConstructorDeclaration) callableDecl).getBody());
 
         // Same as above, a constructor declaration may not have a return type
         // and method declaration always has a return type.
-        callableNode.setReturnType((callableDecl instanceof MethodDeclaration) ? resolveType(((MethodDeclaration) callableDecl).getType()) : null);
+        callableNode.setReturnType(
+                (callableDecl instanceof MethodDeclaration) ? resolveType(((MethodDeclaration) callableDecl).getType())
+                        : null);
 
         callableNode.setConstructor(callableDecl instanceof ConstructorDeclaration);
         callableNode.setStartLine(callableDecl.getRange().isPresent() ? callableDecl.getRange().get().begin.line : -1);
@@ -508,41 +739,44 @@ public class SymbolTable {
                 callableNode.getCallSites().stream()
                         .map(CallSite::getCrudOperation)
                         .filter(Objects::nonNull)
-                        .collect(Collectors.toList())
-        );
+                        .collect(Collectors.toList()));
         callableNode.setCrudQueries(
                 callableNode.getCallSites().stream()
                         .map(CallSite::getCrudQuery)
                         .filter(Objects::nonNull)
-                        .collect(Collectors.toList())
-        );
+                        .collect(Collectors.toList()));
         callableNode.setVariableDeclarations(getVariableDeclarations(body));
         callableNode.setCyclomaticComplexity(getCyclomaticComplexity(callableDecl));
 
-        String callableSignature = (callableDecl instanceof MethodDeclaration) ? callableDecl.getSignature().asString() : callableDecl.getSignature().asString().replace(callableDecl.getSignature().getName(), "<init>");
+        String callableSignature = (callableDecl instanceof MethodDeclaration) ? callableDecl.getSignature().asString()
+                : callableDecl.getSignature().asString().replace(callableDecl.getSignature().getName(), "<init>");
         return Pair.of(callableSignature, callableNode);
     }
 
     private static boolean isEntryPointMethod(CallableDeclaration callableDecl) {
-        return isServletEntrypointMethod(callableDecl) || isJaxRsEntrypointMethod(callableDecl) || isSpringEntrypointMethod(callableDecl) | isStrutsEntryPointMethod(callableDecl);
+        return isServletEntrypointMethod(callableDecl) || isJaxRsEntrypointMethod(callableDecl)
+                || isSpringEntrypointMethod(callableDecl) | isStrutsEntryPointMethod(callableDecl);
     }
 
     @SuppressWarnings("unchecked")
     private static boolean isServletEntrypointMethod(CallableDeclaration callableDecl) {
         return ((NodeList<Parameter>) callableDecl.getParameters()).stream()
                 .anyMatch(parameter -> parameter.getType().asString().contains("HttpServletRequest") ||
-                        parameter.getType().asString().contains("HttpServletResponse")) && callableDecl.getAnnotations().stream().anyMatch(a -> a.toString().contains("Override"));
+                        parameter.getType().asString().contains("HttpServletResponse"))
+                && callableDecl.getAnnotations().stream().anyMatch(a -> a.toString().contains("Override"));
     }
 
     @SuppressWarnings("unchecked")
     private static boolean isJaxRsEntrypointMethod(CallableDeclaration callableDecl) {
-        return callableDecl.getAnnotations().stream().anyMatch(a -> a.toString().contains("POST") || a.toString().contains("PUT") || a.toString().contains("GET") || a.toString().contains("HEAD") || a.toString().contains("DELETE"));
+        return callableDecl.getAnnotations().stream()
+                .anyMatch(a -> a.toString().contains("POST") || a.toString().contains("PUT")
+                        || a.toString().contains("GET") || a.toString().contains("HEAD")
+                        || a.toString().contains("DELETE"));
     }
 
     @SuppressWarnings("unchecked")
     private static boolean isSpringEntrypointMethod(CallableDeclaration callableDecl) {
-        return callableDecl.getAnnotations().stream().anyMatch(a ->
-                a.toString().contains("GetMapping") ||
+        return callableDecl.getAnnotations().stream().anyMatch(a -> a.toString().contains("GetMapping") ||
                 a.toString().contains("PostMapping") ||
                 a.toString().contains("PutMapping") ||
                 a.toString().contains("DeleteMapping") ||
@@ -561,8 +795,7 @@ public class SymbolTable {
                 a.toString().contains("Before") ||
                 a.toString().contains("After") ||
                 a.toString().contains("JobScope") ||
-                a.toString().contains("StepScope")
-        );
+                a.toString().contains("StepScope"));
     }
 
     @SuppressWarnings("unchecked")
@@ -579,18 +812,23 @@ public class SymbolTable {
                 .noneMatch(type -> type.contains("ActionSupport") || type.contains("Action")))
             return false;
 
-        return callableDecl.getAnnotations().stream().anyMatch(a ->
-            a.toString().contains("Action") ||
-                            a.toString().contains("Actions") ||
-                            a.toString().contains("ValidationMethod") ||
-                            a.toString().contains("InputConfig") ||
-                            a.toString().contains("BeforeResult") ||
-                            a.toString().contains("After") ||
-                            a.toString().contains("Before") ||
-                            a.toString().contains("Result") ||
-                            a.toString().contains("Results")
-        ) || callableDecl.getNameAsString().equals("execute"); // Check for execute() method which is the default action method of the Action class
+        return callableDecl.getAnnotations().stream().anyMatch(a -> a.toString().contains("Action") ||
+                a.toString().contains("Actions") ||
+                a.toString().contains("ValidationMethod") ||
+                a.toString().contains("InputConfig") ||
+                a.toString().contains("BeforeResult") ||
+                a.toString().contains("After") ||
+                a.toString().contains("Before") ||
+                a.toString().contains("Result") ||
+                a.toString().contains("Results")) || callableDecl.getNameAsString().equals("execute"); // Check for
+                                                                                                       // execute()
+                                                                                                       // method which
+                                                                                                       // is the default
+                                                                                                       // action method
+                                                                                                       // of the Action
+                                                                                                       // class
     }
+
     /**
      * Computes cyclomatic complexity for the given callable.
      *
@@ -599,16 +837,25 @@ public class SymbolTable {
      */
     private static int getCyclomaticComplexity(CallableDeclaration callableDeclaration) {
         int ifStmtCount = callableDeclaration.findAll(IfStmt.class).size();
-        int loopStmtCount = callableDeclaration.findAll(DoStmt.class).size() + callableDeclaration.findAll(ForStmt.class).size() + callableDeclaration.findAll(ForEachStmt.class).size() + callableDeclaration.findAll(WhileStmt.class).size();
-        int switchCaseCount = callableDeclaration.findAll(SwitchStmt.class).stream().map(stmt -> stmt.getEntries().size()).reduce(0, Integer::sum);
+        int loopStmtCount = callableDeclaration.findAll(DoStmt.class).size()
+                + callableDeclaration.findAll(ForStmt.class).size()
+                + callableDeclaration.findAll(ForEachStmt.class).size()
+                + callableDeclaration.findAll(WhileStmt.class).size();
+        int switchCaseCount = callableDeclaration.findAll(SwitchStmt.class).stream()
+                .map(stmt -> stmt.getEntries().size()).reduce(0, Integer::sum);
         int conditionalExprCount = callableDeclaration.findAll(ConditionalExpr.class).size();
         int catchClauseCount = callableDeclaration.findAll(CatchClause.class).size();
         return ifStmtCount + loopStmtCount + switchCaseCount + conditionalExprCount + catchClauseCount + 1;
     }
+
     private static int getCyclomaticComplexity(InitializerDeclaration initializerDeclaration) {
         int ifStmtCount = initializerDeclaration.findAll(IfStmt.class).size();
-        int loopStmtCount = initializerDeclaration.findAll(DoStmt.class).size() + initializerDeclaration.findAll(ForStmt.class).size() + initializerDeclaration.findAll(ForEachStmt.class).size() + initializerDeclaration.findAll(WhileStmt.class).size();
-        int switchCaseCount = initializerDeclaration.findAll(SwitchStmt.class).stream().map(stmt -> stmt.getEntries().size()).reduce(0, Integer::sum);
+        int loopStmtCount = initializerDeclaration.findAll(DoStmt.class).size()
+                + initializerDeclaration.findAll(ForStmt.class).size()
+                + initializerDeclaration.findAll(ForEachStmt.class).size()
+                + initializerDeclaration.findAll(WhileStmt.class).size();
+        int switchCaseCount = initializerDeclaration.findAll(SwitchStmt.class).stream()
+                .map(stmt -> stmt.getEntries().size()).reduce(0, Integer::sum);
         int conditionalExprCount = initializerDeclaration.findAll(ConditionalExpr.class).size();
         int catchClauseCount = initializerDeclaration.findAll(CatchClause.class).size();
         return ifStmtCount + loopStmtCount + switchCaseCount + conditionalExprCount + catchClauseCount + 1;
@@ -626,16 +873,30 @@ public class SymbolTable {
         Field field = new Field();
 
         // add comment associated with field
-        field.setComment(fieldDecl.getComment().isPresent() ? fieldDecl.getComment().get().asString() : "");
+        com.ibm.cldk.entities.Comment comment = new com.ibm.cldk.entities.Comment();
+        if (fieldDecl.getComment().isPresent()) {
+            Comment parsedComment = fieldDecl.getComment().get();
+            comment.setContent(parsedComment.getContent());
+            parsedComment.getRange().ifPresent(range -> {
+                comment.setStartLine(range.begin.line);
+                comment.setEndLine(range.end.line);
+                comment.setStartColumn(range.begin.column);
+                comment.setEndColumn(range.end.column);
+            });
+        }
+        field.setComment(comment);
 
         // add annotations on field
-        field.setAnnotations(fieldDecl.getAnnotations().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
+        field.setAnnotations(
+                fieldDecl.getAnnotations().stream().map(a -> a.toString().strip()).collect(Collectors.toList()));
 
         // add variable names
-        field.setVariables(fieldDecl.getVariables().stream().map(v -> v.getName().asString()).collect(Collectors.toList()));
+        field.setVariables(
+                fieldDecl.getVariables().stream().map(v -> v.getName().asString()).collect(Collectors.toList()));
 
         // add field modifiers
-        field.setModifiers(fieldDecl.getModifiers().stream().map(m -> m.toString().strip()).collect(Collectors.toList()));
+        field.setModifiers(
+                fieldDecl.getModifiers().stream().map(m -> m.toString().strip()).collect(Collectors.toList()));
 
         // add field type
         field.setType(resolveType(fieldDecl.getCommonType()));
@@ -657,16 +918,21 @@ public class SymbolTable {
      */
     private static List<String> getReferencedTypes(Optional<BlockStmt> blockStmt) {
         Set<String> referencedTypes = new HashSet<>();
-        blockStmt.ifPresent(bs -> bs.findAll(VariableDeclarator.class).stream().filter(vd -> vd.getType().isClassOrInterfaceType()).map(vd -> resolveType(vd.getType())).forEach(referencedTypes::add));
+        blockStmt.ifPresent(
+                bs -> bs.findAll(VariableDeclarator.class).stream().filter(vd -> vd.getType().isClassOrInterfaceType())
+                        .map(vd -> resolveType(vd.getType())).forEach(referencedTypes::add));
 
         // add types of accessed fields to the set of referenced types
-        blockStmt.ifPresent(bs -> bs.findAll(FieldAccessExpr.class).stream().filter(faExpr -> faExpr.getParentNode().isPresent() && !(faExpr.getParentNode().get() instanceof FieldAccessExpr)).map(faExpr -> {
-            if (faExpr.getParentNode().isPresent() && faExpr.getParentNode().get() instanceof CastExpr) {
-                return resolveType(((CastExpr) faExpr.getParentNode().get()).getType());
-            } else {
-                return resolveExpression(faExpr);
-            }
-        }).filter(type -> !type.isEmpty()).forEach(referencedTypes::add));
+        blockStmt.ifPresent(
+                bs -> bs.findAll(FieldAccessExpr.class).stream().filter(faExpr -> faExpr.getParentNode().isPresent()
+                        && !(faExpr.getParentNode().get() instanceof FieldAccessExpr)).map(faExpr -> {
+                            if (faExpr.getParentNode().isPresent()
+                                    && faExpr.getParentNode().get() instanceof CastExpr) {
+                                return resolveType(((CastExpr) faExpr.getParentNode().get()).getType());
+                            } else {
+                                return resolveExpression(faExpr);
+                            }
+                        }).filter(type -> !type.isEmpty()).forEach(referencedTypes::add));
 
         // TODO: add resolved method access expressions
         return new ArrayList<>(referencedTypes);
@@ -687,9 +953,22 @@ public class SymbolTable {
         }
         for (VariableDeclarator declarator : blockStmt.get().findAll(VariableDeclarator.class)) {
             VariableDeclaration varDeclaration = new VariableDeclaration();
+            com.ibm.cldk.entities.Comment comment = new com.ibm.cldk.entities.Comment();
+            if (declarator.getComment().isPresent()) {
+                Comment parsedComment = declarator.getComment().get();
+                comment.setContent(parsedComment.getContent().isBlank() ? "" : parsedComment.getContent().isEmpty() ? "" : parsedComment.getContent());
+                parsedComment.getRange().ifPresent(range -> {
+                    comment.setStartLine(range.begin.line);
+                    comment.setEndLine(range.end.line);
+                    comment.setStartColumn(range.begin.column);
+                    comment.setEndColumn(range.end.column);
+                });
+            }
+            varDeclaration.setComment(comment);
             varDeclaration.setName(declarator.getNameAsString());
             varDeclaration.setType(resolveType(declarator.getType()));
-            varDeclaration.setInitializer(declarator.getInitializer().isPresent() ? declarator.getInitializer().get().toString() : "");
+            varDeclaration.setInitializer(
+                    declarator.getInitializer().isPresent() ? declarator.getInitializer().get().toString() : "");
             if (declarator.getRange().isPresent()) {
                 varDeclaration.setStartLine(declarator.getRange().get().begin.line);
                 varDeclaration.setStartColumn(declarator.getRange().get().begin.column);
@@ -714,20 +993,24 @@ public class SymbolTable {
      * @param callableBody Callable body to compute accessed fields for
      * @return List of fully qualified field names
      */
-    private static List<String> getAccessedFields(Optional<BlockStmt> callableBody, List<String> classFields, String typeName) {
+    private static List<String> getAccessedFields(Optional<BlockStmt> callableBody, List<String> classFields,
+            String typeName) {
         Set<String> accessedFields = new HashSet<>();
 
         // process field access expressions in the callable
-        callableBody.ifPresent(cb -> cb.findAll(FieldAccessExpr.class).stream().filter(faExpr -> faExpr.getParentNode().isPresent() && !(faExpr.getParentNode().get() instanceof FieldAccessExpr)).map(faExpr -> {
-            String fieldDeclaringType = resolveExpression(faExpr.getScope());
-            if (!fieldDeclaringType.isEmpty()) {
-                return fieldDeclaringType + "." + faExpr.getNameAsString();
-            } else {
-                return faExpr.getNameAsString();
-            }
-        }).forEach(accessedFields::add));
+        callableBody.ifPresent(
+                cb -> cb.findAll(FieldAccessExpr.class).stream().filter(faExpr -> faExpr.getParentNode().isPresent()
+                        && !(faExpr.getParentNode().get() instanceof FieldAccessExpr)).map(faExpr -> {
+                            String fieldDeclaringType = resolveExpression(faExpr.getScope());
+                            if (!fieldDeclaringType.isEmpty()) {
+                                return fieldDeclaringType + "." + faExpr.getNameAsString();
+                            } else {
+                                return faExpr.getNameAsString();
+                            }
+                        }).forEach(accessedFields::add));
 
-        // process all names expressions in callable and match against names of declared fields
+        // process all names expressions in callable and match against names of declared
+        // fields
         // in class TODO: handle local variable declarations with the same name
         if (callableBody.isPresent()) {
             for (NameExpr nameExpr : callableBody.get().findAll(NameExpr.class)) {
@@ -750,7 +1033,7 @@ public class SymbolTable {
      * @param callableBody callable to compute call-site information for
      * @return list of call sites
      */
-    @SuppressWarnings({"OptionalUsedAsFieldOrParameterType"})
+    @SuppressWarnings({ "OptionalUsedAsFieldOrParameterType" })
     private static List<CallSite> getCallSites(Optional<BlockStmt> callableBody) {
         List<CallSite> callSites = new ArrayList<>();
         if (callableBody.isEmpty()) {
@@ -769,14 +1052,18 @@ public class SymbolTable {
                 if (declaringType.contains(" | ")) {
                     declaringType = declaringType.split(" \\| ")[0];
                 }
-                String declaringTypeName = declaringType.contains(".") ? declaringType.substring(declaringType.lastIndexOf(".") + 1) : declaringType;
+                String declaringTypeName = declaringType.contains(".")
+                        ? declaringType.substring(declaringType.lastIndexOf(".") + 1)
+                        : declaringType;
                 if (declaringTypeName.equals(scopeExpr.toString())) {
                     isStaticCall = true;
                 }
             }
 
-            // compute return type for method call taking into account typecast of return value
-            if (methodCallExpr.getParentNode().isPresent() && methodCallExpr.getParentNode().get() instanceof CastExpr) {
+            // compute return type for method call taking into account typecast of return
+            // value
+            if (methodCallExpr.getParentNode().isPresent()
+                    && methodCallExpr.getParentNode().get() instanceof CastExpr) {
                 returnType = resolveType(((CastExpr) methodCallExpr.getParentNode().get()).getType());
             } else {
                 returnType = resolveExpression(methodCallExpr);
@@ -796,35 +1083,48 @@ public class SymbolTable {
                 ResolvedMethodDeclaration resolvedMethodDeclaration = methodCallExpr.resolve();
                 accessSpecifier = resolvedMethodDeclaration.accessSpecifier();
             } catch (RuntimeException exception) {
-                Log.debug("Could not resolve access specifier for method call: " + methodCallExpr + ": " + exception.getMessage());
+                Log.debug("Could not resolve access specifier for method call: " + methodCallExpr + ": "
+                        + exception.getMessage());
             }
             // resolve arguments of the method call to types
-            List<String> arguments = methodCallExpr.getArguments().stream().map(SymbolTable::resolveExpression).collect(Collectors.toList());
+            List<String> arguments = methodCallExpr.getArguments().stream().map(SymbolTable::resolveExpression)
+                    .collect(Collectors.toList());
             // Get argument string from the callsite
-            List<String> listOfArgumentStrings = methodCallExpr.getArguments().stream().map(Expression::toString).collect(Collectors.toList());
+            List<String> listOfArgumentStrings = methodCallExpr.getArguments().stream().map(Expression::toString)
+                    .collect(Collectors.toList());
             // Determine if this call site is potentially a CRUD operation.
             CRUDOperation crudOperation = null;
-            Optional<CRUDOperationType> crudOperationType = findCRUDOperation(declaringType, methodCallExpr.getNameAsString());
+            Optional<CRUDOperationType> crudOperationType = findCRUDOperation(declaringType,
+                    methodCallExpr.getNameAsString());
             if (crudOperationType.isPresent()) {
-                // We found a CRUD operation, so we need to populate the details of the call site this CRUD operation.
-                int lineNumber = methodCallExpr.getRange().isPresent() ? methodCallExpr.getRange().get().begin.line : -1;
+                // We found a CRUD operation, so we need to populate the details of the call
+                // site this CRUD operation.
+                int lineNumber = methodCallExpr.getRange().isPresent() ? methodCallExpr.getRange().get().begin.line
+                        : -1;
                 crudOperation = new CRUDOperation();
                 crudOperation.setLineNumber(lineNumber);
                 crudOperation.setOperationType(crudOperationType.get());
             }
             // Determine if this call site is potentially a CRUD query.
             CRUDQuery crudQuery = null;
-            Optional<CRUDQueryType> crudQueryType = findCRUDQuery(declaringType, methodCallExpr.getNameAsString(), Optional.of(listOfArgumentStrings));
+            Optional<CRUDQueryType> crudQueryType = findCRUDQuery(declaringType, methodCallExpr.getNameAsString(),
+                    Optional.of(listOfArgumentStrings));
             if (crudQueryType.isPresent()) {
-                // We found a CRUD query, so we need to populate the details of the call site this CRUD query.
-                int lineNumber = methodCallExpr.getRange().isPresent() ? methodCallExpr.getRange().get().begin.line : -1;
+                // We found a CRUD query, so we need to populate the details of the call site
+                // this CRUD query.
+                int lineNumber = methodCallExpr.getRange().isPresent() ? methodCallExpr.getRange().get().begin.line
+                        : -1;
                 crudQuery = new CRUDQuery();
                 crudQuery.setLineNumber(lineNumber);
                 crudQuery.setQueryType(crudQueryType.get());
                 crudQuery.setQueryArguments(listOfArgumentStrings);
             }
             // add a new call site object
-            callSites.add(createCallSite(methodCallExpr, methodCallExpr.getNameAsString(), receiverName, declaringType, arguments, returnType, calleeSignature, isStaticCall, false, crudOperation, crudQuery, accessSpecifier));
+
+
+            callSites.add(createCallSite(methodCallExpr, methodCallExpr.getNameAsString(), receiverName, declaringType,
+                    arguments, returnType, calleeSignature, isStaticCall, false, crudOperation, crudQuery,
+                    accessSpecifier));
         }
 
         for (ObjectCreationExpr objectCreationExpr : callableBody.get().findAll(ObjectCreationExpr.class)) {
@@ -832,7 +1132,8 @@ public class SymbolTable {
             String instantiatedType = resolveType(objectCreationExpr.getType());
 
             // resolve arguments of the constructor call to types
-            List<String> arguments = objectCreationExpr.getArguments().stream().map(SymbolTable::resolveExpression).collect(Collectors.toList());
+            List<String> arguments = objectCreationExpr.getArguments().stream().map(SymbolTable::resolveExpression)
+                    .collect(Collectors.toList());
 
             // resolve callee and get signature
             String calleeSignature = "";
@@ -843,25 +1144,29 @@ public class SymbolTable {
             }
 
             // add a new call site object
-            callSites.add(createCallSite(objectCreationExpr, "<init>", objectCreationExpr.getScope().isPresent() ? objectCreationExpr.getScope().get().toString() : "", instantiatedType, arguments, instantiatedType, calleeSignature, false, true, null, null, AccessSpecifier.NONE));
+            callSites
+                    .add(createCallSite(objectCreationExpr, "<init>",
+                            objectCreationExpr.getScope().isPresent() ? objectCreationExpr.getScope().get().toString()
+                                    : "",
+                            instantiatedType, arguments, instantiatedType, calleeSignature, false, true, null, null,
+                            AccessSpecifier.NONE));
         }
 
         return callSites;
     }
-@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private static Optional<CRUDQueryType> findCRUDQuery(String declaringType, String nameAsString, Optional<List<String>> arguments) {
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private static Optional<CRUDQueryType> findCRUDQuery(String declaringType, String nameAsString,
+            Optional<List<String>> arguments) {
         return CRUDFinderFactory.getCRUDFinders().map(
                 finder -> {
                     if (finder.isReadQuery(declaringType, nameAsString, arguments)) {
                         return CRUDQueryType.READ;
-                    }
-                    else if (finder.isWriteQuery(declaringType, nameAsString, arguments)) {
+                    } else if (finder.isWriteQuery(declaringType, nameAsString, arguments)) {
                         return CRUDQueryType.WRITE;
-                    }
-                    else if (finder.isNamedQuery(declaringType, nameAsString, arguments)) {
+                    } else if (finder.isNamedQuery(declaringType, nameAsString, arguments)) {
                         return CRUDQueryType.NAMED;
-                    }
-                    else
+                    } else
                         return null;
                 })
                 .filter(Objects::nonNull)
@@ -873,17 +1178,13 @@ public class SymbolTable {
                 finder -> {
                     if (finder.isCreateOperation(declaringType, nameAsString)) {
                         return CRUDOperationType.CREATE;
-                    }
-                    else if (finder.isReadOperation(declaringType, nameAsString)) {
+                    } else if (finder.isReadOperation(declaringType, nameAsString)) {
                         return CRUDOperationType.READ;
-                    }
-                    else if (finder.isUpdateOperation(declaringType, nameAsString)) {
+                    } else if (finder.isUpdateOperation(declaringType, nameAsString)) {
                         return CRUDOperationType.UPDATE;
-                    }
-                    else if (finder.isDeleteOperation(declaringType, nameAsString)) {
+                    } else if (finder.isDeleteOperation(declaringType, nameAsString)) {
                         return CRUDOperationType.DELETE;
-                    }
-                    else
+                    } else
                         return null;
                 })
                 .filter(Objects::nonNull)
@@ -915,9 +1216,22 @@ public class SymbolTable {
             boolean isConstructorCall,
             CRUDOperation crudOperation,
             CRUDQuery crudQuery,
-            AccessSpecifier accessSpecifier
-            ) {
+            AccessSpecifier accessSpecifier) {
         CallSite callSite = new CallSite();
+
+        com.ibm.cldk.entities.Comment comment = new com.ibm.cldk.entities.Comment();
+        callExpr.findAncestor(Node.class).ifPresent(stmt -> {
+                    stmt.getComment().ifPresent(c -> {
+                        comment.setContent(c.getContent());
+                        c.getRange().ifPresent(range -> {
+                            comment.setStartLine(range.begin.line);
+                            comment.setEndLine(range.end.line);
+                            comment.setStartColumn(range.begin.column);
+                            comment.setEndColumn(range.end.column);
+                        });
+                        callSite.setComment(comment);
+                    });
+        });
         callSite.setMethodName(calleeName);
         callSite.setReceiverExpr(receiverExpr);
         callSite.setReceiverType(receiverType);
@@ -954,7 +1268,8 @@ public class SymbolTable {
      * @return Resolved type name or empty string if type resolution fails
      */
     private static String resolveExpression(Expression expression) {
-        // perform expression resolution if resolution of this expression did not fail previously
+        // perform expression resolution if resolution of this expression did not fail
+        // previously
         if (!unresolvedExpressions.contains(expression.toString())) {
             try {
                 ResolvedType resolvedType = javaSymbolSolver.calculateType(expression);
@@ -998,20 +1313,23 @@ public class SymbolTable {
      *
      * @param projectRootPath root path of the project to be analyzed
      * @return Pair of extracted symbol table map and parse problems map for
-     * project
+     *         project
      * @throws IOException
      */
-    public static Pair<Map<String, JavaCompilationUnit>, Map<String, List<Problem>>> extractAll(Path projectRootPath) throws IOException {
+    public static Pair<Map<String, JavaCompilationUnit>, Map<String, List<Problem>>> extractAll(Path projectRootPath)
+            throws IOException {
         SymbolSolverCollectionStrategy symbolSolverCollectionStrategy = new SymbolSolverCollectionStrategy();
         ProjectRoot projectRoot = symbolSolverCollectionStrategy.collect(projectRootPath);
-        javaSymbolSolver = (JavaSymbolSolver) symbolSolverCollectionStrategy.getParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21).getSymbolResolver().get();
+        javaSymbolSolver = (JavaSymbolSolver) symbolSolverCollectionStrategy.getParserConfiguration()
+                .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21).getSymbolResolver().get();
         Map<String, JavaCompilationUnit> symbolTable = new LinkedHashMap<>();
         Map<String, List<Problem>> parseProblems = new HashMap<>();
         for (SourceRoot sourceRoot : projectRoot.getSourceRoots()) {
             for (ParseResult<CompilationUnit> parseResult : sourceRoot.tryToParse()) {
                 if (parseResult.isSuccessful()) {
                     CompilationUnit compilationUnit = parseResult.getResult().get();
-                    symbolTable.put(compilationUnit.getStorage().get().getPath().toString(), processCompilationUnit(compilationUnit));
+                    symbolTable.put(compilationUnit.getStorage().get().getPath().toString(),
+                            processCompilationUnit(compilationUnit));
                 } else {
                     parseProblems.put(sourceRoot.getRoot().toString(), parseResult.getProblems());
                 }
@@ -1020,14 +1338,16 @@ public class SymbolTable {
         return Pair.of(symbolTable, parseProblems);
     }
 
-    public static Pair<Map<String, JavaCompilationUnit>, Map<String, List<Problem>>> extractSingle(String code) throws IOException {
+    public static Pair<Map<String, JavaCompilationUnit>, Map<String, List<Problem>>> extractSingle(String code)
+            throws IOException {
         Map symbolTable = new LinkedHashMap<String, JavaCompilationUnit>();
         Map parseProblems = new HashMap<String, List<Problem>>();
         // Setting up symbol solvers
         CombinedTypeSolver combinedTypeSolver = new CombinedTypeSolver();
         combinedTypeSolver.add(new ReflectionTypeSolver());
 
-        ParserConfiguration parserConfiguration = new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
+        ParserConfiguration parserConfiguration = new ParserConfiguration()
+                .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
         parserConfiguration.setSymbolResolver(new JavaSymbolSolver(combinedTypeSolver));
 
         JavaParser javaParser = new JavaParser(parserConfiguration);
@@ -1052,14 +1372,17 @@ public class SymbolTable {
      * @return
      * @throws IOException
      */
-    public static Pair<Map<String, JavaCompilationUnit>, Map<String, List<Problem>>> extract(Path projectRootPath, List<Path> javaFilePaths) throws IOException {
+    public static Pair<Map<String, JavaCompilationUnit>, Map<String, List<Problem>>> extract(Path projectRootPath,
+            List<Path> javaFilePaths) throws IOException {
 
         // create symbol solver and parser configuration
         SymbolSolverCollectionStrategy symbolSolverCollectionStrategy = new SymbolSolverCollectionStrategy();
         ProjectRoot projectRoot = symbolSolverCollectionStrategy.collect(projectRootPath);
-        javaSymbolSolver = (JavaSymbolSolver) symbolSolverCollectionStrategy.getParserConfiguration().getSymbolResolver().get();
+        javaSymbolSolver = (JavaSymbolSolver) symbolSolverCollectionStrategy.getParserConfiguration()
+                .getSymbolResolver().get();
         Log.info("Setting parser language level to JAVA_21");
-        ParserConfiguration parserConfiguration = new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
+        ParserConfiguration parserConfiguration = new ParserConfiguration()
+                .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21);
         parserConfiguration.setSymbolResolver(javaSymbolSolver);
 
         // create java parser with the configuration
@@ -1074,7 +1397,8 @@ public class SymbolTable {
             if (parseResult.isSuccessful()) {
                 CompilationUnit compilationUnit = parseResult.getResult().get();
                 System.out.println("Successfully parsed file: " + javaFilePath.toString());
-                symbolTable.put(compilationUnit.getStorage().get().getPath().toString(), processCompilationUnit(compilationUnit));
+                symbolTable.put(compilationUnit.getStorage().get().getPath().toString(),
+                        processCompilationUnit(compilationUnit));
             } else {
                 Log.error(parseResult.getProblems().toString());
                 parseProblems.put(javaFilePath.toString(), parseResult.getProblems());

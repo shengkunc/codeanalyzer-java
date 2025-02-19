@@ -8,7 +8,7 @@ import java.util.stream.Collector;
 @Data
 public class InitializationBlock {
     private String filePath;
-    private String comment;
+    private List<Comment> comments;
     private List<String> annotations;
     private List<String> thrownExceptions;
     private String code;
