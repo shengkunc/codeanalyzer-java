@@ -5,7 +5,7 @@ import java.util.List;
 
 @Data
 public class Field {
-    private String comment;
+    private Comment comment;
     private String name;
     private String type;
     private Integer startLine;

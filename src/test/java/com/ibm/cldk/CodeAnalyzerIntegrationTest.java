@@ -364,4 +364,32 @@ public class CodeAnalyzerIntegrationTest {
             }
         }
     }
+
+    @Test
+    void mustBeAbleToExtractCommentBlocks() throws IOException, InterruptedException {
+        var runCodeAnalyzerOnCallGraphTest = container.execInContainer(
+                "bash", "-c",
+                String.format(
+                        "export JAVA_HOME=%s && java -jar /opt/jars/codeanalyzer-%s.jar --input=/test-applications/init-blocks-test --analysis-level=1",
+                        javaHomePath, codeanalyzerVersion
+                )
+        );
+
+        // Read the output JSON
+        Gson gson = new Gson();
+        JsonObject jsonObject = gson.fromJson(runCodeAnalyzerOnCallGraphTest.getStdout(), JsonObject.class);
+        JsonObject symbolTable = jsonObject.getAsJsonObject("symbol_table");
+        for (Map.Entry<String, JsonElement> element : symbolTable.entrySet()) {
+            String key = element.getKey();
+            if (!key.endsWith("App.java")) {
+                continue;
+            }
+            JsonObject type = element.getValue().getAsJsonObject();
+            JsonArray comments = type.getAsJsonArray("comments");
+            Assertions.assertEquals(16, comments.size(), "Should have 15 comments");
+            Assertions.assertTrue(StreamSupport.stream(comments.spliterator(), false)
+                    .map(JsonElement::getAsJsonObject)
+                    .anyMatch(comment -> comment.get("is_javadoc").getAsBoolean()), "Single line comment not found");
+        }
+    }
 }

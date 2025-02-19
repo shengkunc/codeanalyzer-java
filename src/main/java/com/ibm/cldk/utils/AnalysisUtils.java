@@ -15,6 +15,7 @@ package com.ibm.cldk.utils;
 import static com.ibm.cldk.SymbolTable.declaredMethodsAndConstructors;
 
 import com.ibm.cldk.entities.Callable;
+import com.ibm.cldk.entities.Comment;
 import com.ibm.cldk.entities.ParameterInCallable;
 import com.ibm.wala.classLoader.IClass;
 import com.ibm.wala.classLoader.IMethod;
@@ -61,7 +62,7 @@ public class AnalysisUtils {
         newCallable.setFilePath("");
         newCallable.setImplicit(true);
         newCallable.setConstructor(methodName.contains("<init>"));
-        newCallable.setComment("");
+        newCallable.setComments(new ArrayList<>());
         newCallable.setModifiers(Stream.of(method.isPublic() ? "public" : null, method.isProtected() ? "protected" : null, method.isPrivate() ? "private" : null, method.isAbstract() ? "abstract" : null, method.isStatic() ? "static" : null, method.isFinal() ? "final" : null, method.isSynchronized() ? "synchronized" : null, method.isNative() ? "native" : null, method.isSynthetic() ? "synthetic" : null, method.isBridge() ? "bridge" : null).filter(Objects::nonNull).collect(Collectors.toList()));
         newCallable.setCode("");
         newCallable.setSignature(methodSignature);
