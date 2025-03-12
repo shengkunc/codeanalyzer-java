@@ -143,8 +143,8 @@ public class CodeAnalyzerIntegrationTest {
         // Read the output JSON
         Gson gson = new Gson();
         JsonObject jsonObject = gson.fromJson(runCodeAnalyzerOnCallGraphTest.getStdout(), JsonObject.class);
-        JsonArray systemDepGraph = jsonObject.getAsJsonArray("system_dependency_graph");
-        Assertions.assertTrue(StreamSupport.stream(systemDepGraph.spliterator(), false)
+        JsonArray callGraph = jsonObject.getAsJsonArray("call_graph");
+        Assertions.assertTrue(StreamSupport.stream(callGraph.spliterator(), false)
                 .map(JsonElement::getAsJsonObject)
                 .anyMatch(entry ->
                         "CALL_DEP".equals(entry.get("type").getAsString()) &&

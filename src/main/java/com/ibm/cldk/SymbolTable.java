@@ -71,7 +71,6 @@ import com.ibm.cldk.javaee.CRUDFinderFactory;
 import com.ibm.cldk.javaee.utils.enums.CRUDOperationType;
 import com.ibm.cldk.javaee.utils.enums.CRUDQueryType;
 import com.ibm.cldk.utils.Log;
-import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("rawtypes")
 public class SymbolTable {
@@ -241,7 +240,6 @@ public class SymbolTable {
                     } else {
                         // TODO: handle AnnotationDeclaration, RecordDeclaration
                         // set the common type attributes only
-                        Log.warn("Found unsupported type declaration: " + typeDecl.toString());
                         typeNode = new com.ibm.cldk.entities.Type();
                     }
 

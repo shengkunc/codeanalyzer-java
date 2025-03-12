@@ -86,8 +86,8 @@ public class CodeAnalyzer implements Runnable {
     public static String projectRootPom;
 
     @Option(names = { "-a",
-            "--analysis-level" }, description = "Level of analysis to perform. Options: 1 (for just symbol table) or 2 (for call graph). Default: 1")
-    private static int analysisLevel = 1;
+            "--analysis-level" }, description = "Level of analysis to perform. Options: 1 (for just symbol table); 2 (for call graph). Default: 1")
+    public static int analysisLevel = 1;
 
     @Option(names = { "--include-test-classes" }, hidden = true, description = "Print logs to console.")
     public static boolean includeTestClasses = false;
@@ -209,7 +209,7 @@ public class CodeAnalyzer implements Runnable {
                 // Is noBuild is true, we will not build the project
                 build = noBuild ? null : build;
                 List<Dependency> sdgEdges = SystemDependencyGraph.construct(input, dependencies, build);
-                combinedJsonObject.add("system_dependency_graph", gson.toJsonTree(sdgEdges));
+                combinedJsonObject.add("call_graph", gson.toJsonTree(sdgEdges));
             }
         }
         // Cleanup library dependencies directory
