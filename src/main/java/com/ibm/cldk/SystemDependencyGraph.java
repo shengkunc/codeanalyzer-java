@@ -52,6 +52,7 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static com.ibm.cldk.CodeAnalyzer.analysisLevel;
 import static com.ibm.cldk.utils.AnalysisUtils.*;
 
 
@@ -114,76 +115,13 @@ public class SystemDependencyGraph {
     /**
      * Convert SDG to a formal Graph representation.
      *
-     * @param entryPoints
-     * @param sdg
      * @param callGraph
-     * @param edgeLabels
      * @return
      */
-    private static org.jgrapht.Graph<CallableVertex, AbstractGraphEdge> buildGraph(
-            Supplier<Iterator<Statement>> entryPoints,
-            Graph<Statement> sdg, CallGraph callGraph,
-            BiFunction<Statement, Statement, String> edgeLabels) {
+    private static org.jgrapht.Graph<CallableVertex, AbstractGraphEdge> buildOnlyCallGraph(CallGraph callGraph) {
 
         org.jgrapht.Graph<CallableVertex, AbstractGraphEdge> graph = new DefaultDirectedGraph<>(
                 AbstractGraphEdge.class);
-
-        // We'll use forward and backward search on the DFS to identify which CFG nodes
-        // are dominant
-        // This is a forward DFS search (or exit time first search)
-        int dfsNumber = 0;
-        Map<Statement, Integer> dfsFinish = HashMapFactory.make();
-        Iterator<Statement> search = DFS.iterateFinishTime(sdg, entryPoints.get());
-
-        while (search.hasNext()) {
-            dfsFinish.put(search.next(), dfsNumber++);
-        }
-
-        // This is a reverse DFS search (or entry time first search)
-        int reverseDfsNumber = 0;
-        Map<Statement, Integer> dfsStart = HashMapFactory.make();
-        Iterator<Statement> reverseSearch = DFS.iterateDiscoverTime(sdg, entryPoints.get());
-
-        while (reverseSearch.hasNext()) {
-            dfsStart.put(reverseSearch.next(), reverseDfsNumber++);
-        }
-
-        // Populate graph
-        sdg.stream()
-                .filter(dfsFinish::containsKey)
-                .sorted(Comparator.comparingInt(dfsFinish::get))
-                .forEach(p -> sdg.getSuccNodes(p).forEachRemaining(s -> {
-                    if (dfsFinish.containsKey(s)
-                            && dfsStart.get(p) != null && dfsStart.get(s) != null
-                            && !((dfsStart.get(p) >= dfsStart.get(s))
-                            && (dfsFinish.get(p) <= dfsFinish.get(s)))
-                            && !p.getNode().getMethod().equals(s.getNode().getMethod())) {
-
-                        // Add the source nodes to the graph as vertices
-                        Map<String, String> source = Optional.ofNullable(getCallableFromSymbolTable(p.getNode().getMethod())).orElseGet(() -> createAndPutNewCallableInSymbolTable(p.getNode().getMethod()));
-                        // Add the target nodes to the graph as vertices
-                        Map<String, String> target = Optional.ofNullable(getCallableFromSymbolTable(s.getNode().getMethod())).orElseGet(() -> createAndPutNewCallableInSymbolTable(s.getNode().getMethod()));
-
-                        if (source != null && target != null) {
-                            CallableVertex source_vertex = new CallableVertex(source);
-                            CallableVertex target_vertex = new CallableVertex(target);
-                            graph.addVertex(source_vertex);
-                            graph.addVertex(target_vertex);
-                            String edgeType = edgeLabels.apply(p, s);
-                            SystemDepEdge graphEdge = new SystemDepEdge(p, s, edgeType);
-                            SystemDepEdge cgEdge = (SystemDepEdge) graph.getEdge(source_vertex, target_vertex);
-                            if (cgEdge == null || !cgEdge.equals(graphEdge)) {
-                                graph.addEdge(
-                                        source_vertex,
-                                        target_vertex,
-                                        graphEdge);
-                            } else {
-                                graphEdge.incrementWeight();
-                            }
-                        }
-                    }
-                }));
-
         callGraph.getEntrypointNodes()
                 .forEach(p -> {
                     // Get call statements that may execute in a given method
@@ -264,7 +202,6 @@ public class SystemDependencyGraph {
         try {
             System.setOut(new PrintStream(NullOutputStream.INSTANCE));
             System.setErr(new PrintStream(NullOutputStream.INSTANCE));
-//            builder = Util.makeRTABuilder(new JavaLanguage(), options, cache, cha);
             builder = Util.makeRTABuilder(options, cache, cha);
             callGraph = builder.makeCallGraph(options, null);
         } finally {
@@ -283,40 +220,14 @@ public class SystemDependencyGraph {
             }
         });
 
+        org.jgrapht.Graph<CallableVertex, AbstractGraphEdge> graph;
 
-        // Build SDG graph
-        Log.info("Building System Dependency Graph.");
-        SDG<? extends InstanceKey> sdg = new SDG<>(
-                callGraph,
-                builder.getPointerAnalysis(),
-                new ModRef<>(),
-                Slicer.DataDependenceOptions.NO_HEAP_NO_EXCEPTIONS,
-                Slicer.ControlDependenceOptions.NO_EXCEPTIONAL_EDGES);
+        graph = buildOnlyCallGraph(callGraph);
 
-        // Prune the Graph to keep only application classes.
-        Graph<Statement> prunedGraph = GraphSlicer.prune(sdg,
-                statement -> (statement.getNode()
-                        .getMethod()
-                        .getDeclaringClass()
-                        .getClassLoader()
-                        .getReference()
-                        .equals(ClassLoaderReference.Application))
-        );
-
-        // A supplier to get entries
-        Supplier<Iterator<Statement>> sdgEntryPointsSupplier = () -> callGraph.getEntrypointNodes().stream()
-                .map(n -> (Statement) new MethodEntryStatement(n)).iterator();
-
-        org.jgrapht.Graph<CallableVertex, AbstractGraphEdge> sdgGraph = buildGraph(
-                sdgEntryPointsSupplier,
-                prunedGraph, callGraph,
-                (p, s) -> String.valueOf(sdg.getEdgeLabels(p, s).iterator().next())
-        );
-
-        List<Dependency> edges = sdgGraph.edgeSet().stream()
+        List<Dependency> edges = graph.edgeSet().stream()
                 .map(abstractGraphEdge -> {
-                    CallableVertex source = sdgGraph.getEdgeSource(abstractGraphEdge);
-                    CallableVertex target = sdgGraph.getEdgeTarget(abstractGraphEdge);
+                    CallableVertex source = graph.getEdgeSource(abstractGraphEdge);
+                    CallableVertex target = graph.getEdgeTarget(abstractGraphEdge);
                     if (abstractGraphEdge instanceof CallEdge) {
                         return new CallDependency(source, target, abstractGraphEdge);
                     } else {
