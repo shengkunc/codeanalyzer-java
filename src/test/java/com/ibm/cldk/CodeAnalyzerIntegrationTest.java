@@ -4,9 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Assertions;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -31,6 +31,7 @@ public class CodeAnalyzerIntegrationTest {
     static String codeanalyzerVersion;
     static final String javaVersion = "17";
     static String javaHomePath;
+
     static {
         // Build project first
         try {
@@ -120,8 +121,8 @@ public class CodeAnalyzerIntegrationTest {
         var runCodeAnalyzerJar = container.execInContainer(
                 "bash", "-c",
                 String.format("export JAVA_HOME=%s && java -jar /opt/jars/codeanalyzer-%s.jar --help",
-                javaHomePath, codeanalyzerVersion
-        ));
+                        javaHomePath, codeanalyzerVersion
+                ));
 
         Assertions.assertEquals(0, runCodeAnalyzerJar.getExitCode(),
                 "Command should execute successfully");

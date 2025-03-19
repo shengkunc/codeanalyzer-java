@@ -9,15 +9,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.ibm.cldk.CodeAnalyzer.includeTestClasses;
-
 public class ProjectDirectoryScanner {
     public static List<Path> classFilesStream(String projectPath) throws IOException {
         Path projectDir = Paths.get(projectPath).toAbsolutePath();
         Log.info("Finding *.class files in " + projectDir);
         if (Files.exists(projectDir)) {
             try (Stream<Path> paths = Files.walk(projectDir)) {
-                return paths.filter(file -> !Files.isDirectory(file) && file.toString().endsWith(".class")).collect(Collectors.toList());
+                return paths.filter(file -> !Files.isDirectory(file) && file.toString().endsWith(".class"))
+                        .collect(Collectors.toList());
             }
         }
         return null;

@@ -56,8 +56,7 @@ public class BuildProject {
         }
     }
 
-    private static final String GRADLE_DEPENDENCIES_TASK = "allprojects { afterEvaluate { project -> task downloadDependencies(type: Copy) {\n" + "        def configs = project.configurations.findAll { it.canBeResolved }\n\n" + "        dependsOn configs\n" + "        from configs\n" + "        into project.hasProperty('outputDir') ? project.property('outputDir') : \"${project.buildDir}/libs\"\n\n" + "        doFirst {\n" + "            println \"Downloading dependencies for project ${project.name} to: ${destinationDir}\"\n" + "            configs.each { config ->\n" + "                    println \"Configuration: ${config.name}\"\n" + "                config.resolvedConfiguration.resolvedArtifacts.each { artifact ->\n" + "                        println \"\t${artifact.moduleVersion.id}:${artifact.extension}\"\n" + "                }\n" + "            }\n" + "        }\n" + "    }\n" + "    }\n" + "}";
-
+    private static final String GRADLE_DEPENDENCIES_TASK = "allprojects { afterEvaluate { project -> task downloadDependencies(type: Copy) { def configs = project.configurations.findAll { it.canBeResolved }; dependsOn configs; from configs; into project.hasProperty('outputDir') ? project.property('outputDir') : \"${project.buildDir}/libs\"; eachFile { fileCopyDetails -> fileCopyDetails.file.setWritable(true) }; doFirst { println \"Downloading dependencies for project ${project.name} to: ${destinationDir}\"; configs.each { config -> println \"Configuration: ${config.name}\"; config.resolvedConfiguration.resolvedArtifacts.each { artifact -> println \"\\t${artifact.moduleVersion.id}:${artifact.extension}\" } } } } } }";
     private static AbstractMap.SimpleEntry<Boolean, String> commandExists(File command) {
         StringBuilder output = new StringBuilder();
         if (!command.exists()) {
@@ -143,10 +142,10 @@ public class BuildProject {
         String[] mavenCommand;
         if (includeTestClasses) {
             Log.warn("Hidden flag `--include-test-classes` is turned on. We'll including test classes in WALA analysis");
-            mavenCommand = new String[]{MAVEN_CMD, "clean", "test-compile", "-f", projectPath + "/pom.xml", "-B", "-V", "-e", "-Drat.skip", "-Dfindbugs.skip", "-Dcheckstyle.skip", "-Dpmd.skip=true", "-Dspotbugs.skip", "-Denforcer.skip", "-Dmaven.javadoc.skip", "-DskipTests", "-Dmaven.test.skip.exec", "-Dlicense.skip=true", "-Drat.skip=true", "-Dspotless.check.skip=true"};
+            mavenCommand = new String[]{MAVEN_CMD, "test-compile", "-f", projectPath + "/pom.xml", "-B", "-V", "-e", "-Drat.skip", "-Dfindbugs.skip", "-Dcheckstyle.skip", "-Dpmd.skip=true", "-Dspotbugs.skip", "-Denforcer.skip", "-Dmaven.javadoc.skip", "-DskipTests", "-Dmaven.test.skip.exec", "-Dlicense.skip=true", "-Drat.skip=true", "-Dspotless.check.skip=true"};
         }
         else
-            mavenCommand = new String[]{MAVEN_CMD, "clean", "compile", "-f", projectPath + "/pom.xml", "-B", "-V", "-e", "-Drat.skip", "-Dfindbugs.skip", "-Dcheckstyle.skip", "-Dpmd.skip=true", "-Dspotbugs.skip", "-Denforcer.skip", "-Dmaven.javadoc.skip", "-DskipTests", "-Dmaven.test.skip.exec", "-Dlicense.skip=true", "-Drat.skip=true", "-Dspotless.check.skip=true"};
+            mavenCommand = new String[]{MAVEN_CMD, "compile", "-f", projectPath + "/pom.xml", "-B", "-V", "-e", "-Drat.skip", "-Dfindbugs.skip", "-Dcheckstyle.skip", "-Dpmd.skip=true", "-Dspotbugs.skip", "-Denforcer.skip", "-Dmaven.javadoc.skip", "-DskipTests", "-Dmaven.test.skip.exec", "-Dlicense.skip=true", "-Drat.skip=true", "-Dspotless.check.skip=true"};
 
         return buildWithTool(mavenCommand);
     }
@@ -155,14 +154,14 @@ public class BuildProject {
         // Adjust Gradle command as needed
         String[] gradleCommand;
         if (GRADLE_CMD.equals("gradlew") || GRADLE_CMD.equals("gradlew.bat")) {
-            gradleCommand = new String[]{projectPath + File.separator + GRADLE_CMD, "clean", "compileJava", "-p", projectPath};
+            gradleCommand = new String[]{projectPath + File.separator + GRADLE_CMD, "compileJava", "-p", projectPath};
         } else {
             if (includeTestClasses) {
                 Log.warn("Hidden flag `--include-test-classes` is turned on. We'll including test classes in WALA analysis");
-                gradleCommand = new String[]{GRADLE_CMD, "clean", "compileTestJava", "-p", projectPath};
+                gradleCommand = new String[]{GRADLE_CMD, "compileTestJava", "-p", projectPath};
             }
             else
-                gradleCommand = new String[]{GRADLE_CMD, "clean", "compileJava", "-p", projectPath};
+                gradleCommand = new String[]{GRADLE_CMD, "compileJava", "-p", projectPath};
         }
         return buildWithTool(gradleCommand);
     }
@@ -240,7 +239,7 @@ public class BuildProject {
                         ));
             }
             Log.info("Found pom.xml in the project directory. Using Maven to download dependencies.");
-            String[] mavenCommand = {MAVEN_CMD, "--no-transfer-progress", "-f", Paths.get(projectRoot, "pom.xml").toAbsolutePath().toString(), "dependency:copy-dependencies", "-DoutputDirectory=" + libDownloadPath.toString()};
+            String[] mavenCommand = {MAVEN_CMD, "--no-transfer-progress", "-f", Paths.get(projectRoot, "pom.xml").toAbsolutePath().toString(), "dependency:copy-dependencies", "-DoutputDirectory=" + libDownloadPath.toString(), "-Doverwrite=true"};
             return buildWithTool(mavenCommand);
         } else if (new File(projectRoot, "build.gradle").exists() || new File(projectRoot, "build.gradle.kts").exists()) {
             libDownloadPath = Paths.get(projectPath, "build", LIB_DEPS_DOWNLOAD_DIR).toAbsolutePath();
