@@ -239,7 +239,7 @@ public class BuildProject {
                         ));
             }
             Log.info("Found pom.xml in the project directory. Using Maven to download dependencies.");
-            String[] mavenCommand = {MAVEN_CMD, "--no-transfer-progress", "-f", Paths.get(projectRoot, "pom.xml").toAbsolutePath().toString(), "dependency:copy-dependencies", "-DoutputDirectory=" + libDownloadPath.toString(), "-Doverwrite=true"};
+            String[] mavenCommand = {MAVEN_CMD, "--no-transfer-progress", "-f", Paths.get(projectRoot, "pom.xml").toAbsolutePath().toString(), "dependency:copy-dependencies", "-DoutputDirectory=" + libDownloadPath.toString(), "-Doverwrite=true", "--fail-never"};
             return buildWithTool(mavenCommand);
         } else if (new File(projectRoot, "build.gradle").exists() || new File(projectRoot, "build.gradle.kts").exists()) {
             libDownloadPath = Paths.get(projectPath, "build", LIB_DEPS_DOWNLOAD_DIR).toAbsolutePath();
