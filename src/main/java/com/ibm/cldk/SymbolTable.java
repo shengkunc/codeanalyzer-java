@@ -21,6 +21,7 @@ import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.comments.JavadocComment;
 import com.github.javaparser.ast.nodeTypes.NodeWithJavadoc;
 import com.github.javaparser.ast.stmt.*;
+import com.ibm.cldk.javaee.EntrypointsFinderFactory;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.github.javaparser.JavaParser;
@@ -72,7 +73,7 @@ import com.ibm.cldk.javaee.utils.enums.CRUDOperationType;
 import com.ibm.cldk.javaee.utils.enums.CRUDQueryType;
 import com.ibm.cldk.utils.Log;
 
-@SuppressWarnings("rawtypes")
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class SymbolTable {
 
     private static JavaSymbolSolver javaSymbolSolver;
@@ -466,149 +467,8 @@ public class SymbolTable {
     }
 
     private static boolean isEntryPointClass(TypeDeclaration typeDecl) {
-        return isSpringEntrypointClass(typeDecl) || isStrutsEntryPointClass(typeDecl)
-                || isCamelEntryPointClass(typeDecl) || isJaxRSEntrypointClass(typeDecl)
-                || isJakartaServletEntryPointClass(typeDecl);
-
-    }
-
-    private static boolean isSpringEntrypointClass(TypeDeclaration typeDeclaration) {
-        List<AnnotationExpr> annotations = typeDeclaration.getAnnotations();
-        for (AnnotationExpr annotation : annotations) {
-            // Existing checks
-            if (annotation.getNameAsString().contains("RestController")
-                    || annotation.getNameAsString().contains("Controller")
-                    || annotation.getNameAsString().contains("HandleInterceptor")
-                    || annotation.getNameAsString().contains("HandlerInterceptor")) {
-                return true;
-            }
-
-            // Spring Boot specific checks
-            if (annotation.getNameAsString().contains("SpringBootApplication")
-                    || annotation.getNameAsString().contains("Configuration")
-                    || annotation.getNameAsString().contains("Component")
-                    || annotation.getNameAsString().contains("Service")
-                    || annotation.getNameAsString().contains("Repository")) {
-                return true;
-            }
-        }
-
-        // Check if class implements CommandLineRunner or ApplicationRunner
-        if (typeDeclaration instanceof ClassOrInterfaceDeclaration) {
-            ClassOrInterfaceDeclaration classDecl = (ClassOrInterfaceDeclaration) typeDeclaration;
-            for (ClassOrInterfaceType implementedType : classDecl.getImplementedTypes()) {
-                String typeName = implementedType.getNameAsString();
-                if (typeName.equals("CommandLineRunner") || typeName.equals("ApplicationRunner")) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private static boolean isJaxRSEntrypointClass(TypeDeclaration typeDeclaration) {
-        List<CallableDeclaration> callableDeclarations = typeDeclaration.findAll(CallableDeclaration.class);
-        for (CallableDeclaration callableDeclaration : callableDeclarations) {
-            if (callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("POST"))
-                    || callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("PUT"))
-                    || callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("GET"))
-                    || callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("HEAD"))
-                    || callableDeclaration.getAnnotations().stream().anyMatch(a -> a.toString().contains("DELETE"))) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static boolean isStrutsEntryPointClass(TypeDeclaration typeDeclaration) {
-        if (!(typeDeclaration instanceof ClassOrInterfaceDeclaration)) {
-            return false;
-        }
-
-        ClassOrInterfaceDeclaration classDecl = (ClassOrInterfaceDeclaration) typeDeclaration;
-
-        // Check class-level Struts annotations
-        if (classDecl.getAnnotations().stream().anyMatch(a -> a.getNameAsString().contains("Action")
-                || a.getNameAsString().contains("Namespace") || a.getNameAsString().contains("InterceptorRef"))) {
-            return true;
-        }
-
-        // Check if extends ActionSupport or implements Interceptor
-        try {
-            ResolvedReferenceTypeDeclaration resolved = classDecl.resolve();
-            return resolved.getAllAncestors().stream().anyMatch(ancestor -> {
-                String name = ancestor.getQualifiedName();
-                return name.contains("ActionSupport") || name.contains("Interceptor");
-            });
-        } catch (UnsolvedSymbolException e) {
-            Log.warn("Could not resolve class: " + e.getMessage());
-        }
-
-        return false;
-    }
-
-    private static boolean isCamelEntryPointClass(TypeDeclaration typeDeclaration) {
-        if (!(typeDeclaration instanceof ClassOrInterfaceDeclaration)) {
-            return false;
-        }
-
-        ClassOrInterfaceDeclaration classDecl = (ClassOrInterfaceDeclaration) typeDeclaration;
-
-        // Check Camel class annotations
-        if (classDecl.getAnnotations().stream().anyMatch(a -> a.getNameAsString().contains("Component"))) {
-            return true;
-        }
-
-        // Check Camel parent classes and interfaces
-        try {
-            ResolvedReferenceTypeDeclaration resolved = classDecl.resolve();
-            return resolved.getAllAncestors().stream().anyMatch(ancestor -> {
-                String name = ancestor.getQualifiedName();
-                return name.contains("RouteBuilder") || name.contains("Processor") || name.contains("Producer")
-                        || name.contains("Consumer");
-            });
-        } catch (UnsolvedSymbolException e) {
-            Log.warn("Could not resolve class: " + e.getMessage());
-        }
-
-        return false;
-    }
-
-    /**
-     * Checks if the given class is a Jakarta Servlet entry point class.
-     *
-     * @param typeDecl Type declaration to check
-     * @return True if the class is a Jakarta Servlet entry point class, false
-     *         otherwise
-     */
-    private static boolean isJakartaServletEntryPointClass(TypeDeclaration typeDecl) {
-        if (!(typeDecl instanceof ClassOrInterfaceDeclaration)) {
-            return false;
-        }
-
-        ClassOrInterfaceDeclaration classDecl = (ClassOrInterfaceDeclaration) typeDecl;
-
-        // Check annotations
-        if (classDecl.getAnnotations().stream()
-                .anyMatch(a -> a.getNameAsString().contains("WebServlet") || a.getNameAsString().contains("WebFilter")
-                        || a.getNameAsString().contains("WebListener") || a.getNameAsString().contains("ServerEndpoint")
-                        || a.getNameAsString().contains("MessageDriven")
-                        || a.getNameAsString().contains("WebService"))) {
-            return true;
-        }
-
-        // Check types
-        return classDecl.getExtendedTypes().stream()
-                .map(ClassOrInterfaceType::getNameAsString)
-                .anyMatch(name -> name.contains("HttpServlet") || name.contains("GenericServlet"))
-                || classDecl.getImplementedTypes().stream().map(
-                        ClassOrInterfaceType::asString).anyMatch(
-                                name -> name.contains("ServletContextListener")
-                                        || name.contains("HttpSessionListener")
-                                        || name.contains("ServletRequestListener")
-                                        || name.contains("MessageListener"));
+        return EntrypointsFinderFactory.getEntrypointFinders()
+                .anyMatch(finder -> finder.isEntrypointClass(typeDecl));
     }
 
     /**
@@ -752,80 +612,10 @@ public class SymbolTable {
     }
 
     private static boolean isEntryPointMethod(CallableDeclaration callableDecl) {
-        return isServletEntrypointMethod(callableDecl) || isJaxRsEntrypointMethod(callableDecl)
-                || isSpringEntrypointMethod(callableDecl) | isStrutsEntryPointMethod(callableDecl);
+        return EntrypointsFinderFactory.getEntrypointFinders()
+                .anyMatch(finder -> finder.isEntrypointMethod(callableDecl));
     }
 
-    @SuppressWarnings("unchecked")
-    private static boolean isServletEntrypointMethod(CallableDeclaration callableDecl) {
-        return ((NodeList<Parameter>) callableDecl.getParameters()).stream()
-                .anyMatch(parameter -> parameter.getType().asString().contains("HttpServletRequest") ||
-                        parameter.getType().asString().contains("HttpServletResponse"))
-                && callableDecl.getAnnotations().stream().anyMatch(a -> a.toString().contains("Override"));
-    }
-
-    @SuppressWarnings("unchecked")
-    private static boolean isJaxRsEntrypointMethod(CallableDeclaration callableDecl) {
-        return callableDecl.getAnnotations().stream()
-                .anyMatch(a -> a.toString().contains("POST") || a.toString().contains("PUT")
-                        || a.toString().contains("GET") || a.toString().contains("HEAD")
-                        || a.toString().contains("DELETE"));
-    }
-
-    @SuppressWarnings("unchecked")
-    private static boolean isSpringEntrypointMethod(CallableDeclaration callableDecl) {
-        return callableDecl.getAnnotations().stream().anyMatch(a -> a.toString().contains("GetMapping") ||
-                a.toString().contains("PostMapping") ||
-                a.toString().contains("PutMapping") ||
-                a.toString().contains("DeleteMapping") ||
-                a.toString().contains("PatchMapping") ||
-                a.toString().contains("RequestMapping") ||
-                a.toString().contains("EventListener") ||
-                a.toString().contains("Scheduled") ||
-                a.toString().contains("KafkaListener") ||
-                a.toString().contains("RabbitListener") ||
-                a.toString().contains("JmsListener") ||
-                a.toString().contains("PreAuthorize") ||
-                a.toString().contains("PostAuthorize") ||
-                a.toString().contains("PostConstruct") ||
-                a.toString().contains("PreDestroy") ||
-                a.toString().contains("Around") ||
-                a.toString().contains("Before") ||
-                a.toString().contains("After") ||
-                a.toString().contains("JobScope") ||
-                a.toString().contains("StepScope"));
-    }
-
-    @SuppressWarnings("unchecked")
-    private static boolean isStrutsEntryPointMethod(CallableDeclaration callableDecl) {
-        // First check if this method is in a Struts Action class
-        Optional<Node> parentNode = callableDecl.getParentNode();
-        if (parentNode.isEmpty() || !(parentNode.get() instanceof ClassOrInterfaceDeclaration)) {
-            return false;
-        }
-
-        ClassOrInterfaceDeclaration parentClass = (ClassOrInterfaceDeclaration) parentNode.get();
-        if (parentClass.getExtendedTypes().stream()
-                .map(ClassOrInterfaceType::asString)
-                .noneMatch(type -> type.contains("ActionSupport") || type.contains("Action")))
-            return false;
-
-        return callableDecl.getAnnotations().stream().anyMatch(a -> a.toString().contains("Action") ||
-                a.toString().contains("Actions") ||
-                a.toString().contains("ValidationMethod") ||
-                a.toString().contains("InputConfig") ||
-                a.toString().contains("BeforeResult") ||
-                a.toString().contains("After") ||
-                a.toString().contains("Before") ||
-                a.toString().contains("Result") ||
-                a.toString().contains("Results")) || callableDecl.getNameAsString().equals("execute"); // Check for
-                                                                                                       // execute()
-                                                                                                       // method which
-                                                                                                       // is the default
-                                                                                                       // action method
-                                                                                                       // of the Action
-                                                                                                       // class
-    }
 
     /**
      * Computes cyclomatic complexity for the given callable.

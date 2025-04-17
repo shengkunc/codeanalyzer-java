@@ -209,6 +209,7 @@ public class CodeAnalyzerIntegrationTest {
         Assertions.assertTrue(runCodeAnalyzerOnDaytrader8.getStdout().contains("\"is_entrypoint\": true"), "No entry point methods found");
     }
 
+
     @Test
     void shouldBeAbleToDetectCRUDOperationsAndQueriesForPlantByWebsphere() throws Exception {
         var runCodeAnalyzerOnPlantsByWebsphere = container.execInContainer(

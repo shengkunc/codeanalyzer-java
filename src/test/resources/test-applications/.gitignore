@@ -52,3 +52,6 @@ target/
 # Ignore everything in codeql-db except the directory itself
 codeql-db/*
 !codeql-db/.keep
+
+# Ignore hidden apps
+hidden-apps/
