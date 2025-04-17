@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 
@@ -29,7 +30,7 @@ public class BuildProject {
      * @return the maven command
      */
     public static String getMavenCommand() {
-        String mvnSystemCommand = Arrays.stream(System.getenv("PATH").split(System.getProperty("path.separator"))).filter(Predicate.not(String::isBlank)).filter(Predicate.not(String::isEmpty)).map(path -> new File(path, System.getProperty("os.name").toLowerCase().contains("windows") ? "mvn.cmd" : "mvn")).filter(File::exists).findFirst().map(File::getAbsolutePath).orElse(null);
+        String mvnSystemCommand = Arrays.stream(System.getenv("PATH").split(File.pathSeparator)).filter(Predicate.not(String::isBlank)).filter(Predicate.not(String::isEmpty)).map(path -> new File(path, System.getProperty("os.name").toLowerCase().contains("windows") ? "mvn.cmd" : "mvn")).filter(File::exists).findFirst().map(File::getAbsolutePath).orElse(null);
         File mvnWrapper = System.getProperty("os.name").toLowerCase().contains("windows") ? new File(projectRootPom, "mvnw.cmd") : new File(projectRootPom, "mvnw");
         return commandExists(mvnWrapper.getAbsoluteFile()).getKey() ? mvnWrapper.getAbsoluteFile().toString() : mvnSystemCommand;
     }
@@ -40,7 +41,7 @@ public class BuildProject {
      * @return the gradle command
      */
     public static String getGradleCommand() {
-        String gradleSystemCommand = Arrays.stream(System.getenv("PATH").split(System.getProperty("path.separator"))).filter(Predicate.not(String::isBlank)).filter(Predicate.not(String::isEmpty)).map(path -> new File(path, System.getProperty("os.name").toLowerCase().contains("windows") ? "gradle.bat" : "gradle")).filter(File::exists).findFirst().map(File::getAbsolutePath).orElse(null);
+        String gradleSystemCommand = Arrays.stream(System.getenv("PATH").split(File.pathSeparator)).filter(Predicate.not(String::isBlank)).filter(Predicate.not(String::isEmpty)).map(path -> new File(path, System.getProperty("os.name").toLowerCase().contains("windows") ? "gradle.bat" : "gradle")).filter(File::exists).findFirst().map(File::getAbsolutePath).orElse(null);
         File gradleWrapper = System.getProperty("os.name").toLowerCase().contains("windows") ? new File(projectRootPom, "gradlew.bat") : new File(projectRootPom, "gradlew");
 
         return commandExists(gradleWrapper.getAbsoluteFile()).getKey() ? gradleWrapper.getAbsoluteFile()    .toString() : gradleSystemCommand;
