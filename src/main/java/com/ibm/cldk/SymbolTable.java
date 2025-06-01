@@ -339,7 +339,7 @@ public class SymbolTable {
                         return throwStmt.asThrowStmt().getExpression().toString();
                     }
                 }).collect(Collectors.toList()));
-        initializationBlock.setCode(LexicalPreservingPrinter.setup(initializerDeclaration.getBody()).toString());
+        initializationBlock.setCode(LexicalPreservingPrinter.print(initializerDeclaration.getBody()));
         initializationBlock.setStartLine(
                 initializerDeclaration.getRange().isPresent() ? initializerDeclaration.getRange().get().begin.line
                         : -1);
@@ -563,7 +563,7 @@ public class SymbolTable {
         callableNode.setStartLine(callableDecl.getRange().isPresent() ? callableDecl.getRange().get().begin.line : -1);
         callableNode.setEndLine(callableDecl.getRange().isPresent() ? callableDecl.getRange().get().end.line : -1);
         callableNode.setReferencedTypes(getReferencedTypes(body));
-        callableNode.setCode(body.isPresent() ? LexicalPreservingPrinter.setup(body.get()).toString() : "");
+        callableNode.setCode(body.isPresent() ? LexicalPreservingPrinter.print(body.get()) : "");
         callableNode.setCodeStartLine(body.isPresent()? body.get().getBegin().get().line : -1);
 
         callableNode.setAccessedFields(getAccessedFields(body, classFields, typeName));
@@ -1090,7 +1090,7 @@ public class SymbolTable {
         for (SourceRoot sourceRoot : projectRoot.getSourceRoots()) {
             for (ParseResult<CompilationUnit> parseResult : sourceRoot.tryToParse()) {
                 if (parseResult.isSuccessful()) {
-                    CompilationUnit compilationUnit = parseResult.getResult().get();
+                    CompilationUnit compilationUnit = LexicalPreservingPrinter.setup(parseResult.getResult().get());
                     symbolTable.put(compilationUnit.getStorage().get().getPath().toString(),
                             processCompilationUnit(compilationUnit));
                 } else {
@@ -1116,7 +1116,7 @@ public class SymbolTable {
         JavaParser javaParser = new JavaParser(parserConfiguration);
         ParseResult<CompilationUnit> parseResult = javaParser.parse(code);
         if (parseResult.isSuccessful()) {
-            CompilationUnit compilationUnit = parseResult.getResult().get();
+            CompilationUnit compilationUnit = LexicalPreservingPrinter.setup(parseResult.getResult().get());
             Log.debug("Successfully parsed code. Now processing compilation unit");
             symbolTable.put("<pseudo-path>", processCompilationUnit(compilationUnit));
         } else {
@@ -1158,7 +1158,7 @@ public class SymbolTable {
         for (Path javaFilePath : javaFilePaths) {
             ParseResult<CompilationUnit> parseResult = javaParser.parse(javaFilePath);
             if (parseResult.isSuccessful()) {
-                CompilationUnit compilationUnit = parseResult.getResult().get();
+                CompilationUnit compilationUnit = LexicalPreservingPrinter.setup(parseResult.getResult().get());
                 System.out.println("Successfully parsed file: " + javaFilePath.toString());
                 symbolTable.put(compilationUnit.getStorage().get().getPath().toString(),
                         processCompilationUnit(compilationUnit));
