@@ -70,6 +70,9 @@ public class Callable {
     /** The ending line number of the callable entity in the source file. */
     private int endLine;
 
+    /** The starting line number of the callable code in the source file. */
+    private int codeStartLine;
+
     /** The return type of the callable entity. */
     private String returnType = null;
 

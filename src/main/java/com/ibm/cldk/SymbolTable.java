@@ -16,38 +16,23 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.github.javaparser.*;
+import com.github.javaparser.ast.*;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.comments.JavadocComment;
+import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.nodeTypes.NodeWithJavadoc;
 import com.github.javaparser.ast.stmt.*;
+import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
+import com.ibm.cldk.entities.*;
 import com.ibm.cldk.javaee.EntrypointsFinderFactory;
 import org.apache.commons.lang3.tuple.Pair;
 
-import com.github.javaparser.JavaParser;
-import com.github.javaparser.ParseResult;
-import com.github.javaparser.ParserConfiguration;
-import com.github.javaparser.Problem;
-import com.github.javaparser.ast.AccessSpecifier;
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.Node;
-import com.github.javaparser.ast.NodeList;
-import com.github.javaparser.ast.expr.AnnotationExpr;
-import com.github.javaparser.ast.expr.AssignExpr;
-import com.github.javaparser.ast.expr.CastExpr;
-import com.github.javaparser.ast.expr.ConditionalExpr;
-import com.github.javaparser.ast.expr.Expression;
-import com.github.javaparser.ast.expr.FieldAccessExpr;
-import com.github.javaparser.ast.expr.MethodCallExpr;
-import com.github.javaparser.ast.expr.NameExpr;
-import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.nodeTypes.NodeWithName;
-import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.ReferenceType;
 import com.github.javaparser.ast.type.Type;
-import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
-import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
@@ -57,17 +42,6 @@ import com.github.javaparser.utils.ProjectRoot;
 import com.github.javaparser.utils.SourceRoot;
 import com.google.common.collect.Table;
 import com.google.common.collect.Tables;
-import com.ibm.cldk.entities.CRUDOperation;
-import com.ibm.cldk.entities.CRUDQuery;
-import com.ibm.cldk.entities.CallSite;
-import com.ibm.cldk.entities.Callable;
-import com.ibm.cldk.entities.EnumConstant;
-import com.ibm.cldk.entities.Field;
-import com.ibm.cldk.entities.InitializationBlock;
-import com.ibm.cldk.entities.JavaCompilationUnit;
-import com.ibm.cldk.entities.ParameterInCallable;
-import com.ibm.cldk.entities.RecordComponent;
-import com.ibm.cldk.entities.VariableDeclaration;
 import com.ibm.cldk.javaee.CRUDFinderFactory;
 import com.ibm.cldk.javaee.utils.enums.CRUDOperationType;
 import com.ibm.cldk.javaee.utils.enums.CRUDQueryType;
@@ -365,7 +339,7 @@ public class SymbolTable {
                         return throwStmt.asThrowStmt().getExpression().toString();
                     }
                 }).collect(Collectors.toList()));
-        initializationBlock.setCode(initializerDeclaration.getBody().toString());
+        initializationBlock.setCode(LexicalPreservingPrinter.print(initializerDeclaration.getBody()));
         initializationBlock.setStartLine(
                 initializerDeclaration.getRange().isPresent() ? initializerDeclaration.getRange().get().begin.line
                         : -1);
@@ -589,7 +563,8 @@ public class SymbolTable {
         callableNode.setStartLine(callableDecl.getRange().isPresent() ? callableDecl.getRange().get().begin.line : -1);
         callableNode.setEndLine(callableDecl.getRange().isPresent() ? callableDecl.getRange().get().end.line : -1);
         callableNode.setReferencedTypes(getReferencedTypes(body));
-        callableNode.setCode(body.isPresent() ? body.get().toString() : "");
+        callableNode.setCode(body.isPresent() ? LexicalPreservingPrinter.print(body.get()) : "");
+        callableNode.setCodeStartLine(body.isPresent()? body.get().getBegin().get().line : -1);
 
         callableNode.setAccessedFields(getAccessedFields(body, classFields, typeName));
         callableNode.setCallSites(getCallSites(body));
@@ -1115,7 +1090,7 @@ public class SymbolTable {
         for (SourceRoot sourceRoot : projectRoot.getSourceRoots()) {
             for (ParseResult<CompilationUnit> parseResult : sourceRoot.tryToParse()) {
                 if (parseResult.isSuccessful()) {
-                    CompilationUnit compilationUnit = parseResult.getResult().get();
+                    CompilationUnit compilationUnit = LexicalPreservingPrinter.setup(parseResult.getResult().get());
                     symbolTable.put(compilationUnit.getStorage().get().getPath().toString(),
                             processCompilationUnit(compilationUnit));
                 } else {
@@ -1141,7 +1116,7 @@ public class SymbolTable {
         JavaParser javaParser = new JavaParser(parserConfiguration);
         ParseResult<CompilationUnit> parseResult = javaParser.parse(code);
         if (parseResult.isSuccessful()) {
-            CompilationUnit compilationUnit = parseResult.getResult().get();
+            CompilationUnit compilationUnit = LexicalPreservingPrinter.setup(parseResult.getResult().get());
             Log.debug("Successfully parsed code. Now processing compilation unit");
             symbolTable.put("<pseudo-path>", processCompilationUnit(compilationUnit));
         } else {
@@ -1183,7 +1158,7 @@ public class SymbolTable {
         for (Path javaFilePath : javaFilePaths) {
             ParseResult<CompilationUnit> parseResult = javaParser.parse(javaFilePath);
             if (parseResult.isSuccessful()) {
-                CompilationUnit compilationUnit = parseResult.getResult().get();
+                CompilationUnit compilationUnit = LexicalPreservingPrinter.setup(parseResult.getResult().get());
                 System.out.println("Successfully parsed file: " + javaFilePath.toString());
                 symbolTable.put(compilationUnit.getStorage().get().getPath().toString(),
                         processCompilationUnit(compilationUnit));
