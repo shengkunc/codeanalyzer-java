@@ -3,16 +3,7 @@ package com.ibm.cldk;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -25,6 +16,7 @@ import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.nodeTypes.NodeWithJavadoc;
 import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
+import com.github.javaparser.resolution.declarations.ResolvedMethodLikeDeclaration;
 import com.ibm.cldk.entities.*;
 import com.ibm.cldk.javaee.EntrypointsFinderFactory;
 import org.apache.commons.lang3.tuple.Pair;
@@ -501,7 +493,7 @@ public class SymbolTable {
         callableNode.setFilePath(filePath);
 
         // add callable signature
-        callableNode.setSignature(callableDecl.getSignature().asString());
+        callableNode.setSignature(getTypeErasureSignature(callableDecl));
 
         // add comment associated with method/constructor
         callableNode.setComments(
@@ -581,9 +573,60 @@ public class SymbolTable {
         callableNode.setVariableDeclarations(getVariableDeclarations(body));
         callableNode.setCyclomaticComplexity(getCyclomaticComplexity(callableDecl));
 
-        String callableSignature = (callableDecl instanceof MethodDeclaration) ? callableDecl.getSignature().asString()
-                : callableDecl.getSignature().asString().replace(callableDecl.getSignature().getName(), "<init>");
+        String callableSignature = getTypeErasureSignature(callableDecl);
         return Pair.of(callableSignature, callableNode);
+    }
+
+    /**
+     * Returns type erasure signature for the given callable. Returns regular signature if an
+     * error occurs in getting erased types.
+     *
+     * @param callableDecl: Callable to compute type erasure signature for
+     * @return String representing type erasure or regular signature
+     */
+    private static String getTypeErasureSignature(CallableDeclaration callableDecl) {
+        try {
+            StringBuffer signature = new StringBuffer(
+                    (callableDecl instanceof MethodDeclaration) ? callableDecl.getNameAsString() : "<init>"
+            );
+            List<String> erasureParameterTypes = new ArrayList<>();
+            for (Object param : callableDecl.getParameters()) {
+                Parameter parameter = (Parameter) param;
+                ResolvedType resolvedType = parameter.getType().resolve();
+                if (parameter.isVarArgs()) {
+                    erasureParameterTypes.add(resolvedType.describe() + "[]");
+                } else {
+                    erasureParameterTypes.add(resolvedType.erasure().describe());
+                }
+            }
+            signature.append("(");
+            signature.append(String.join(", ", erasureParameterTypes));
+            signature.append(")");
+            return signature.toString();
+        } catch (Throwable e) {
+            Log.warn("Could not compute type erasure signature for "+callableDecl.getSignature().asString()+
+                    "; computing regular signature");
+            return callableDecl.getSignature().asString();
+        }
+    }
+
+    /**
+     * Returns type erasure signature for the given method or constructor declaration
+     * resolved for a call site.
+     *
+     * @param methodDecl: Resolved method/constructor to compute type erasure signature for
+     * @return String representing type erasure signature
+     */
+    private static String getTypeErasureSignature(ResolvedMethodLikeDeclaration methodDecl) {
+        StringBuffer signature = new StringBuffer(methodDecl.getName());
+        List<String> erasureParameterTypes = new ArrayList<>();
+        for (int i = 0; i < methodDecl.getNumberOfParams(); i++) {
+            erasureParameterTypes.add(methodDecl.getParam(i).getType().erasure().describe());
+        }
+        signature.append("(");
+        signature.append(String.join(", ", erasureParameterTypes));
+        signature.append(")");
+        return signature.toString();
     }
 
     private static boolean isEntryPointMethod(CallableDeclaration callableDecl) {
@@ -835,8 +878,8 @@ public class SymbolTable {
             // resolve callee and get signature
             String calleeSignature = "";
             try {
-                calleeSignature = methodCallExpr.resolve().getSignature();
-            } catch (RuntimeException exception) {
+                calleeSignature = getTypeErasureSignature(methodCallExpr.resolve());
+            } catch (Throwable exception) {
                 Log.debug("Could not resolve method call: " + methodCallExpr + ": " + exception.getMessage());
             }
 
@@ -845,7 +888,7 @@ public class SymbolTable {
             try {
                 ResolvedMethodDeclaration resolvedMethodDeclaration = methodCallExpr.resolve();
                 accessSpecifier = resolvedMethodDeclaration.accessSpecifier();
-            } catch (RuntimeException exception) {
+            } catch (Throwable exception) {
                 Log.debug("Could not resolve access specifier for method call: " + methodCallExpr + ": "
                         + exception.getMessage());
             }
@@ -901,8 +944,8 @@ public class SymbolTable {
             // resolve callee and get signature
             String calleeSignature = "";
             try {
-                calleeSignature = objectCreationExpr.resolve().getSignature();
-            } catch (RuntimeException exception) {
+                calleeSignature = getTypeErasureSignature(objectCreationExpr.resolve());
+            } catch (Throwable exception) {
                 Log.debug("Could not resolve constructor call: " + objectCreationExpr + ": " + exception.getMessage());
             }
 
@@ -1039,7 +1082,7 @@ public class SymbolTable {
                 if (resolvedType.isReferenceType() || resolvedType.isUnionType()) {
                     return resolvedType.describe();
                 }
-            } catch (RuntimeException exception) {
+            } catch (Throwable exception) {
                 Log.debug("Could not resolve expression: " + expression + ": " + exception.getMessage());
                 unresolvedExpressions.add(expression.toString());
             }
@@ -1060,7 +1103,7 @@ public class SymbolTable {
         if (!unresolvedTypes.contains(type.asString())) {
             try {
                 return type.resolve().describe();
-            } catch (RuntimeException e) {
+            } catch (Throwable e) {
                 Log.warn("Could not resolve type: " + type.asString() + ": " + e.getMessage());
                 unresolvedTypes.add(type.asString());
             }
