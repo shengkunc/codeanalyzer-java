@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -586,7 +587,7 @@ public class SymbolTable {
      */
     private static String getTypeErasureSignature(CallableDeclaration callableDecl) {
         try {
-            StringBuffer signature = new StringBuffer(
+            StringBuilder signature = new StringBuilder(
                     (callableDecl instanceof MethodDeclaration) ? callableDecl.getNameAsString() : "<init>"
             );
             List<String> erasureParameterTypes = new ArrayList<>();
@@ -618,7 +619,7 @@ public class SymbolTable {
      * @return String representing type erasure signature
      */
     private static String getTypeErasureSignature(ResolvedMethodLikeDeclaration methodDecl) {
-        StringBuffer signature = new StringBuffer(methodDecl.getName());
+        StringBuilder signature = new StringBuilder(methodDecl.getName());
         List<String> erasureParameterTypes = new ArrayList<>();
         for (int i = 0; i < methodDecl.getNumberOfParams(); i++) {
             erasureParameterTypes.add(methodDecl.getParam(i).getType().erasure().describe());
@@ -1122,6 +1123,20 @@ public class SymbolTable {
      *         project
      * @throws IOException
      */
+    private static final String[] EXCLUDED_SOURCE_ROOTS = {
+            Paths.get("src", "test", "resources").toString(),
+            Paths.get("src", "it", "resources").toString(),
+            Paths.get("src", "xdocs-examples").toString()
+    };
+    private static boolean excludeSourceRoot(Path sourceRoot) {
+        for (String excludedSrcRoot : EXCLUDED_SOURCE_ROOTS) {
+            if (Pattern.compile(excludedSrcRoot).matcher(sourceRoot.toString()).find()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static Pair<Map<String, JavaCompilationUnit>, Map<String, List<Problem>>> extractAll(Path projectRootPath)
             throws IOException {
         SymbolSolverCollectionStrategy symbolSolverCollectionStrategy = new SymbolSolverCollectionStrategy();
@@ -1131,6 +1146,9 @@ public class SymbolTable {
         Map<String, JavaCompilationUnit> symbolTable = new LinkedHashMap<>();
         Map<String, List<Problem>> parseProblems = new HashMap<>();
         for (SourceRoot sourceRoot : projectRoot.getSourceRoots()) {
+            if (excludeSourceRoot(sourceRoot.getRoot())) {
+                continue;
+            }
             for (ParseResult<CompilationUnit> parseResult : sourceRoot.tryToParse()) {
                 if (parseResult.isSuccessful()) {
                     CompilationUnit compilationUnit = LexicalPreservingPrinter.setup(parseResult.getResult().get());
