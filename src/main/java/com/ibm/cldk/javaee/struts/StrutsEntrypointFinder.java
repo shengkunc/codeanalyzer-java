@@ -34,7 +34,7 @@ public class StrutsEntrypointFinder extends AbstractEntrypointFinder {
                 String name = ancestor.getQualifiedName();
                 return name.contains("ActionSupport") || name.contains("Interceptor");
             });
-        } catch (UnsolvedSymbolException e) {
+        } catch (RuntimeException e) {
             Log.warn("Could not resolve class: " + e.getMessage());
         }
 
