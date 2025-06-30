@@ -42,6 +42,9 @@ public class CallSite {
     /** List of argument types for the method call */
     private List<String> argumentTypes;
 
+    /** List of argument expressions for the method call */
+    private List<String> argumentExpr;
+
     /** Return type of the called method */
     private String returnType;
 

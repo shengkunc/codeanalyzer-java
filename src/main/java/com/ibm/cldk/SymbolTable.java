@@ -894,7 +894,7 @@ public class SymbolTable {
                         + exception.getMessage());
             }
             // resolve arguments of the method call to types
-            List<String> arguments = methodCallExpr.getArguments().stream().map(SymbolTable::resolveExpression)
+            List<String> argumentTypes = methodCallExpr.getArguments().stream().map(SymbolTable::resolveExpression)
                     .collect(Collectors.toList());
             // Get argument string from the callsite
             List<String> listOfArgumentStrings = methodCallExpr.getArguments().stream().map(Expression::toString)
@@ -930,7 +930,7 @@ public class SymbolTable {
 
 
             callSites.add(createCallSite(methodCallExpr, methodCallExpr.getNameAsString(), receiverName, declaringType,
-                    arguments, returnType, calleeSignature, isStaticCall, false, crudOperation, crudQuery,
+                    argumentTypes, listOfArgumentStrings, returnType, calleeSignature, isStaticCall, false, crudOperation, crudQuery,
                     accessSpecifier));
         }
 
@@ -939,7 +939,11 @@ public class SymbolTable {
             String instantiatedType = resolveType(objectCreationExpr.getType());
 
             // resolve arguments of the constructor call to types
-            List<String> arguments = objectCreationExpr.getArguments().stream().map(SymbolTable::resolveExpression)
+            List<String> argumentTypes = objectCreationExpr.getArguments().stream().map(SymbolTable::resolveExpression)
+                    .collect(Collectors.toList());
+
+            // get argument expressions for constructor call
+            List<String> argumentExpressions = objectCreationExpr.getArguments().stream().map(Expression::toString)
                     .collect(Collectors.toList());
 
             // resolve callee and get signature
@@ -955,7 +959,7 @@ public class SymbolTable {
                     .add(createCallSite(objectCreationExpr, "<init>",
                             objectCreationExpr.getScope().isPresent() ? objectCreationExpr.getScope().get().toString()
                                     : "",
-                            instantiatedType, arguments, instantiatedType, calleeSignature, false, true, null, null,
+                            instantiatedType, argumentTypes, argumentExpressions, instantiatedType, calleeSignature, false, true, null, null,
                             AccessSpecifier.NONE));
         }
 
@@ -1006,9 +1010,15 @@ public class SymbolTable {
      * @param calleeName
      * @param receiverExpr
      * @param receiverType
-     * @param arguments
+     * @param argumentTypes
+     * @param argumentExpr
+     * @param returnType
+     * @param calleeSignature
      * @param isStaticCall
      * @param isConstructorCall
+     * @param crudOperation,
+     * @param crudQuery,
+     * @param accessSpecifier
      * @return
      */
     private static CallSite createCallSite(
@@ -1016,7 +1026,8 @@ public class SymbolTable {
             String calleeName,
             String receiverExpr,
             String receiverType,
-            List<String> arguments,
+            List<String> argumentTypes,
+            List<String> argumentExpr,
             String returnType,
             String calleeSignature,
             boolean isStaticCall,
@@ -1042,7 +1053,8 @@ public class SymbolTable {
         callSite.setMethodName(calleeName);
         callSite.setReceiverExpr(receiverExpr);
         callSite.setReceiverType(receiverType);
-        callSite.setArgumentTypes(arguments);
+        callSite.setArgumentTypes(argumentTypes);
+        callSite.setArgumentExpr(argumentExpr);
         callSite.setReturnType(returnType);
         callSite.setCalleeSignature(calleeSignature);
         callSite.setStaticCall(isStaticCall);
