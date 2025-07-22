@@ -26,6 +26,3 @@ import javax.inject.Qualifier;
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.PARAMETER, ElementType.TYPE})
 public @interface QuotePriceChange {
 }
-
-
-

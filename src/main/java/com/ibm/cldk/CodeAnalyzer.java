@@ -12,20 +12,6 @@ limitations under the License.
  */
 package com.ibm.cldk;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.lang.reflect.Type;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.tuple.Pair;
-
 import com.github.javaparser.Problem;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.FieldNamingPolicy;
@@ -37,7 +23,18 @@ import com.google.gson.JsonParser;
 import com.ibm.cldk.entities.JavaCompilationUnit;
 import com.ibm.cldk.utils.BuildProject;
 import com.ibm.cldk.utils.Log;
-
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.tuple.Pair;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;

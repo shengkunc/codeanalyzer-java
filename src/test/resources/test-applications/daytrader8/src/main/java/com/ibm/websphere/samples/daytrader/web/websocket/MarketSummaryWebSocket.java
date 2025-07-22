@@ -15,17 +15,23 @@
  */
 package com.ibm.websphere.samples.daytrader.web.websocket;
 
+import com.ibm.websphere.samples.daytrader.interfaces.MarketSummaryUpdate;
+import com.ibm.websphere.samples.daytrader.interfaces.QuotePriceChange;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.RecentQuotePriceChangeList;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
+import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
-
 import javax.annotation.Priority;
 import javax.enterprise.event.ObservesAsync;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
-import javax.interceptor.Interceptor;
 import javax.inject.Inject;
+import javax.interceptor.Interceptor;
 import javax.json.JsonObject;
 import javax.websocket.CloseReason;
 import javax.websocket.EndpointConfig;
@@ -37,16 +43,6 @@ import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
 
-
-import com.ibm.websphere.samples.daytrader.interfaces.MarketSummaryUpdate;
-import com.ibm.websphere.samples.daytrader.interfaces.QuotePriceChange;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.RecentQuotePriceChangeList;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
-import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
-
-
 /** This class is a WebSocket EndPoint that sends the Market Summary in JSON form and
  *  encodes recent quote price changes when requested or when triggered by CDI events.
  **/
@@ -56,13 +52,13 @@ public class MarketSummaryWebSocket {
 
   @Inject
   RecentQuotePriceChangeList recentQuotePriceChangeList;
-  
+
   private TradeServices tradeAction;
 
-  private static final List<Session> sessions = new CopyOnWriteArrayList<>();  
+  private static final List<Session> sessions = new CopyOnWriteArrayList<>();
   private final CountDownLatch latch = new CountDownLatch(1);
 
-  @Inject 
+  @Inject
   public MarketSummaryWebSocket(@Any Instance<TradeServices> services) {
     tradeAction = services.select(new TradeRunTimeModeLiteral(TradeConfig.getRunTimeModeNames()[TradeConfig.getRunTimeMode()])).get();
   }
@@ -72,12 +68,12 @@ public class MarketSummaryWebSocket {
   }
 
   @OnOpen
-  public void onOpen(final Session session, EndpointConfig ec) {  
+  public void onOpen(final Session session, EndpointConfig ec) {
     Log.trace("MarketSummaryWebSocket:onOpen -- session -->" + session + "<--");
 
     sessions.add(session);
     latch.countDown();
-  } 
+  }
 
   @OnMessage
   public void sendMarketSummary(ActionMessage message, Session currentSession) {
@@ -87,14 +83,14 @@ public class MarketSummaryWebSocket {
     Log.trace("MarketSummaryWebSocket:sendMarketSummary -- received -->" + action + "<--");
 
     // Make sure onopen is finished
-    try { 
+    try {
       latch.await();
     } catch (Exception e) {
       e.printStackTrace();
       return;
     }
-    
-    
+
+
     if (action != null && action.equals("updateMarketSummary")) {
 
       try {
@@ -102,9 +98,9 @@ public class MarketSummaryWebSocket {
         JsonObject mkSummary = tradeAction.getMarketSummary().toJSON();
 
         Log.trace("MarketSummaryWebSocket:sendMarketSummary -- sending -->" + mkSummary + "<--");
-                
+
         currentSession.getAsyncRemote().sendText(mkSummary.toString());
-        
+
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -143,10 +139,10 @@ public class MarketSummaryWebSocket {
   public void onMarketSummarytUpdate(@ObservesAsync @Priority(Interceptor.Priority.APPLICATION) @MarketSummaryUpdate String event) {
 
     Log.trace("MarketSummaryWebSocket:onJMSMessage");
-   
+
     try {
     JsonObject mkSummary = tradeAction.getMarketSummary().toJSON();
-    
+
     Iterator<Session> failSafeIterator = sessions.iterator();
     while(failSafeIterator.hasNext()) {
       Session s = failSafeIterator.next();

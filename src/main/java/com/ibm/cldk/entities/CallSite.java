@@ -1,10 +1,9 @@
 package com.ibm.cldk.entities;
 
-import lombok.Data;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import lombok.Data;
 
 /**
  * Represents a call site within source code, encapsulating information about method invocations
@@ -41,6 +40,9 @@ public class CallSite {
 
     /** List of argument types for the method call */
     private List<String> argumentTypes;
+
+    /** List of argument expressions for the method call */
+    private List<String> argumentExpr;
 
     /** Return type of the called method */
     private String returnType;

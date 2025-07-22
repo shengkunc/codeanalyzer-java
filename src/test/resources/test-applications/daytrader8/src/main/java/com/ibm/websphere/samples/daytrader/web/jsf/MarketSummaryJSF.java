@@ -15,19 +15,6 @@
  */
 package com.ibm.websphere.samples.daytrader.web.jsf;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Iterator;
-
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.inject.Any;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
-import javax.inject.Named;
-
 import com.ibm.websphere.samples.daytrader.beans.MarketSummaryDataBean;
 import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
 import com.ibm.websphere.samples.daytrader.interfaces.Trace;
@@ -35,6 +22,17 @@ import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
 import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
 import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Collection;
+import java.util.Date;
+import java.util.Iterator;
+import javax.annotation.PostConstruct;
+import javax.enterprise.context.RequestScoped;
+import javax.enterprise.inject.Any;
+import javax.enterprise.inject.Instance;
+import javax.inject.Inject;
+import javax.inject.Named;
 
 @Named("marketdata")
 @RequestScoped
@@ -53,14 +51,14 @@ public class MarketSummaryJSF {
   // cache the gainPercent once computed for this bean
   private BigDecimal gainPercent = null;
 
-  @Inject 
+  @Inject
   public MarketSummaryJSF(@Any Instance<TradeServices> services) {
     tradeAction = services.select(new TradeRunTimeModeLiteral(TradeConfig.getRunTimeModeNames()[TradeConfig.getRunTimeMode()])).get();
   }
-  
+
   @PostConstruct
   public void getMarketSummary() {
-   
+
     try {
       MarketSummaryDataBean marketSummaryData = tradeAction.getMarketSummary();
       setSummaryDate(marketSummaryData.getSummaryDate());

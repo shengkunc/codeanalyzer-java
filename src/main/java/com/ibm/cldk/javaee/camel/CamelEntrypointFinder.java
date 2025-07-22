@@ -37,7 +37,7 @@ public class CamelEntrypointFinder extends AbstractEntrypointFinder {
                 return name.contains("RouteBuilder") || name.contains("Processor") || name.contains("Producer")
                         || name.contains("Consumer");
             });
-        } catch (UnsolvedSymbolException e) {
+        } catch (RuntimeException e) {
             Log.warn("Could not resolve class: " + e.getMessage());
         }
 

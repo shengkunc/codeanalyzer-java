@@ -15,9 +15,12 @@
  */
 package com.ibm.websphere.samples.daytrader.jaxrs;
 
+import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
+import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.enterprise.context.RequestScoped;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
@@ -31,22 +34,17 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
-import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
-
 @Path("quotes")
 @RequestScoped
 public class QuoteResource {
 
-  private TradeServices tradeService;  
+  private TradeServices tradeService;
 
-  
+
   public QuoteResource() {
   }
-  
-  @Inject 
+
+  @Inject
   public QuoteResource(@Any Instance<TradeServices> services) {
     tradeService = services.select(new TradeRunTimeModeLiteral(TradeConfig.getRunTimeModeNames()[TradeConfig.getRunTimeMode()])).get();
   }
@@ -64,7 +62,7 @@ public class QuoteResource {
   public List<QuoteDataBean> quotesPost(@FormParam("symbols") String symbols) {
     return getQuotes(symbols);
   }
-  
+
   private List<QuoteDataBean> getQuotes(String symbols) {
     ArrayList<QuoteDataBean> quoteDataBeans = new ArrayList<QuoteDataBean>();
 
@@ -73,12 +71,12 @@ public class QuoteResource {
       for (String symbol: symbolsSplit) {
         QuoteDataBean quoteData = tradeService.getQuote(symbol);
         quoteDataBeans.add(quoteData);
-      } 
+      }
     } catch (Exception e) {
       e.printStackTrace();
     }
 
     return (List<QuoteDataBean>)quoteDataBeans;
   }
-  
+
 }

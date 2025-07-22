@@ -17,10 +17,8 @@ package com.ibm.websphere.samples.daytrader.web.prims.cdi;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -61,7 +59,7 @@ public class PingServletCDIEvent extends HttpServlet {
 
   /**
    * called when the class is loaded to initialize the servlet
-   * 
+   *
    * @param config
    *            ServletConfig:
    **/
@@ -77,4 +75,3 @@ public class PingServletCDIEvent extends HttpServlet {
     hitCount++;
   }
 }
-

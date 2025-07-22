@@ -15,16 +15,15 @@
  */
 package com.ibm.websphere.samples.daytrader.web.jsf;
 
+import com.ibm.websphere.samples.daytrader.beans.RunStatsDataBean;
+import com.ibm.websphere.samples.daytrader.impl.direct.TradeDirectDBUtils;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import javax.enterprise.context.RequestScoped;
 import javax.faces.context.ExternalContext;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.servlet.http.HttpSession;
-
-import com.ibm.websphere.samples.daytrader.beans.RunStatsDataBean;
-import com.ibm.websphere.samples.daytrader.impl.direct.TradeDirectDBUtils;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 @Named("tradeconfig")
 @RequestScoped
@@ -33,7 +32,7 @@ public class TradeConfigJSF {
   @Inject
   private ExternalContext context;
 
-  @Inject 
+  @Inject
   TradeDirectDBUtils dbUtils;
 
   private String runtimeMode = TradeConfig.getRunTimeModeNames()[TradeConfig.getRunTimeMode()];
@@ -54,7 +53,7 @@ public class TradeConfigJSF {
   private String result = "";
 
   public void updateConfig() {
-    String currentConfigStr = "\n\n########## Trade configuration update. Current config:\n\n";     
+    String currentConfigStr = "\n\n########## Trade configuration update. Current config:\n\n";
 
     currentConfigStr += "\t\tRunTimeMode:\t\t\t" + TradeConfig.getRunTimeModeNames()[TradeConfig.getRunTimeMode()] + "\n";
 
@@ -123,10 +122,10 @@ public class TradeConfigJSF {
   public String resetTrade() {
     RunStatsDataBean runStatsData = new RunStatsDataBean();
     TradeConfig currentConfig = new TradeConfig();
-    HttpSession session = (HttpSession) context.getSession(true);   
+    HttpSession session = (HttpSession) context.getSession(true);
 
 
-    try {     
+    try {
       runStatsData = dbUtils.resetTrade(false);
       session.setAttribute("runStatsData", runStatsData);
       session.setAttribute("tradeConfig", currentConfig);
@@ -147,7 +146,7 @@ public class TradeConfigJSF {
       dbUtils.buildDB(new java.io.PrintWriter(System.out), null);
     } catch (Exception e) {
       e.printStackTrace();
-    }       
+    }
 
     result = "TradeBuildDB: **** DayTrader Database Built - " + TradeConfig.getMAX_USERS() + " users created, " + TradeConfig.getMAX_QUOTES()
     + " quotes created. ****<br/>";

@@ -15,10 +15,15 @@
  */
 package com.ibm.websphere.samples.daytrader.impl.ejb3;
 
+import com.ibm.websphere.samples.daytrader.beans.MarketSummaryDataBean;
+import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
+import com.ibm.websphere.samples.daytrader.interfaces.MarketSummaryUpdate;
+import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.annotation.Resource;
 import javax.ejb.Lock;
 import javax.ejb.LockType;
@@ -36,13 +41,6 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 
-import com.ibm.websphere.samples.daytrader.beans.MarketSummaryDataBean;
-import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
-import com.ibm.websphere.samples.daytrader.interfaces.MarketSummaryUpdate;
-import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
-
 @Singleton
 public class MarketSummarySingleton {
 
@@ -50,18 +48,18 @@ public class MarketSummarySingleton {
 
   @PersistenceContext
   private EntityManager entityManager;
-  
+
   @Inject
   @MarketSummaryUpdate
   Event<String> mkSummaryUpdateEvent;
-  
+
   @Resource
   private ManagedExecutorService mes;
-  
+
 
   /* Update Market Summary every 20 seconds */
   @Schedule(second = "*/20",minute = "*", hour = "*", persistent = false)
-  private void updateMarketSummary() { 
+  private void updateMarketSummary() {
 
 
     Log.trace("MarketSummarySingleton:updateMarketSummary -- updating market summary");
@@ -75,7 +73,7 @@ public class MarketSummarySingleton {
 
     List<QuoteDataBean> quotes;
 
-    try {        
+    try {
       // Find Trade Stock Index Quotes (Top 100 quotes) ordered by their change in value
       CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
       CriteriaQuery<QuoteDataBean> criteriaQuery = criteriaBuilder.createQuery(QuoteDataBean.class);
@@ -87,7 +85,7 @@ public class MarketSummarySingleton {
     } catch (Exception e) {
       Log.debug("Warning: The database has not been configured. If this is the first time the application has been started, please create and populate the database tables. Then restart the server.");
       return;
-    }	
+    }
 
     /* TODO: Make this cleaner? */
     QuoteDataBean[] quoteArray = quotes.toArray(new QuoteDataBean[quotes.size()]);
@@ -122,7 +120,7 @@ public class MarketSummarySingleton {
   }
 
   @Lock(LockType.READ)
-  public MarketSummaryDataBean getMarketSummaryDataBean() { 
+  public MarketSummaryDataBean getMarketSummaryDataBean() {
     if (marketSummaryDataBean == null){
       updateMarketSummary();
     }

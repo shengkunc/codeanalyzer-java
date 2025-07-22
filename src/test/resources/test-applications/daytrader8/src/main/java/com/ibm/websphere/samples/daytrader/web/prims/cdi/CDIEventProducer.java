@@ -31,11 +31,11 @@ public class CDIEventProducer {
   @Inject
   @Hit
   Event<String> hitCountEvent;
-  
+
   @Inject
   @HitAsync
   Event<String> hitCountEventAsync;
-  
+
   public void produceSyncEvent() {
     hitCountEvent.fire("hitCount++");
   }
@@ -43,7 +43,7 @@ public class CDIEventProducer {
   public void produceAsyncEvent() {
     hitCountEventAsync.fireAsync("hitCount++", NotificationOptions.builder().setExecutor(mes).build());
   }
-  
-  
+
+
 
 }

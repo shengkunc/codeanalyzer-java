@@ -15,8 +15,9 @@
  */
 package com.ibm.websphere.samples.daytrader.web.prims.ejb3;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.io.IOException;
-
 import javax.annotation.Resource;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -29,9 +30,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 /**
  * This primitive is designed to run inside the TradeApplication and relies upon
@@ -96,15 +94,15 @@ public class PingServlet2MDBQueue extends HttpServlet {
                     } finally {
                         sess.close();
                     }*/
-                	
+
                 	JMSContext context = queueConnectionFactory.createContext();
-            		
+
             		message = context.createTextMessage();
 
             		message.setStringProperty("command", "ping");
                     message.setLongProperty("publishTime", System.currentTimeMillis());
                     message.setText("Ping message for queue java:comp/env/jms/TradeBrokerQueue sent from PingServlet2MDBQueue at " + new java.util.Date());
-              		
+
             		context.createProducer().send(tradeBrokerQueue, message);
                 }
 

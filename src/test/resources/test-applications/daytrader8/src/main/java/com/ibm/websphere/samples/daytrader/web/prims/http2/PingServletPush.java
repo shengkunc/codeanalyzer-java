@@ -15,10 +15,9 @@
  */
 package com.ibm.websphere.samples.daytrader.web.prims.http2;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
 import java.io.IOException;
 import java.io.PrintWriter;
-
-//
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -26,8 +25,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.PushBuilder;
-
-import com.ibm.websphere.samples.daytrader.util.Log;
 
 @WebServlet(name = "PingServletPush", urlPatterns = { "/PingServletPush" })
 public class PingServletPush extends HttpServlet {
@@ -59,7 +56,7 @@ public class PingServletPush extends HttpServlet {
       respWriter.write("<html><head><title>Ping Servlet HTTP/2</title></head>"
           + "<body><HR><BR><FONT size=\"+2\" color=\"#000066\">Ping Servlet HTTP/2<BR></FONT><FONT size=\"+1\" color=\"#000066\">Init time : " + initTime
           + "<BR><BR></FONT>  <B>Hit Count: " + hitCount + "</B><br>" +
-          "<img src='images/graph.gif'>" + 
+          "<img src='images/graph.gif'>" +
           "</body></html>");
     }
   }

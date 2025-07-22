@@ -15,10 +15,10 @@
  */
 package com.ibm.websphere.samples.daytrader.web.prims;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-
 import javax.json.Json;
 import javax.json.stream.JsonGenerator;
 import javax.json.stream.JsonParser;
@@ -30,11 +30,9 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.ibm.websphere.samples.daytrader.util.Log;
-
 /**
  *
- * PingJSONP tests JSON generating and parsing 
+ * PingJSONP tests JSON generating and parsing
  *
  */
 
@@ -43,7 +41,7 @@ public class PingJSONPStreaming extends HttpServlet {
 
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = -5348806619121122708L;
     private static String initTime;
@@ -78,22 +76,22 @@ public class PingJSONPStreaming extends HttpServlet {
             res.setContentType("text/html");
 
             ServletOutputStream out = res.getOutputStream();
-            
+
             hitCount++;
-            
+
             // JSON generate
             StringWriter sw = new StringWriter();
             JsonGenerator generator = Json.createGenerator(sw);
-             
+
             generator.writeStartObject();
             generator.write("initTime",initTime);
             generator.write("hitCount", hitCount);
             generator.writeEnd();
             generator.flush();
-            
+
             String generatedJSON =  sw.toString();
-            StringBuffer parsedJSON = new StringBuffer(); 
-            
+            StringBuffer parsedJSON = new StringBuffer();
+
             // JSON parse
             JsonParser parser = Json.createParser(new StringReader(generatedJSON));
             while (parser.hasNext()) {
@@ -116,7 +114,7 @@ public class PingJSONPStreaming extends HttpServlet {
                      break;
                }
             }
-            
+
             out.println("<html><head><title>Ping JSONP</title></head>"
                     + "<body><HR><BR><FONT size=\"+2\" color=\"#000066\">Ping JSONP</FONT><BR>Generated JSON: " + generatedJSON + "<br>Parsed JSON: " + parsedJSON + "</body></html>");
         } catch (Exception e) {

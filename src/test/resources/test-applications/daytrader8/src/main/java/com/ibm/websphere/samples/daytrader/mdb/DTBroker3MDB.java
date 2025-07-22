@@ -15,6 +15,13 @@
  */
 package com.ibm.websphere.samples.daytrader.mdb;
 
+import com.ibm.websphere.samples.daytrader.interfaces.Trace;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.MDBStats;
+import com.ibm.websphere.samples.daytrader.util.TimerStat;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
+import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.ejb.ActivationConfigProperty;
@@ -30,14 +37,6 @@ import javax.inject.Inject;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
-
-import com.ibm.websphere.samples.daytrader.interfaces.Trace;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.MDBStats;
-import com.ibm.websphere.samples.daytrader.util.TimerStat;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
-import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
 
 // For Glassfish/Payara - take jms/ off of the destination name
 
@@ -58,7 +57,7 @@ public class DTBroker3MDB implements MessageListener {
 
   @Inject @Any
   Instance<TradeServices> services;
-  
+
   private TradeServices trade;
 
   public DTBroker3MDB() {
@@ -67,13 +66,13 @@ public class DTBroker3MDB implements MessageListener {
       statInterval = 10000;
     }
     mdbStats = MDBStats.getInstance();
-  }   
+  }
 
   @PostConstruct
   void boostrapTradeServices() {
     trade = services.select(new TradeRunTimeModeLiteral(TradeConfig.getRunTimeModeNames()[TradeConfig.getRunTimeMode()])).get();
-  } 
-  
+  }
+
   @Override
   public void onMessage(Message message) {
     try {

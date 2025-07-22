@@ -36,5 +36,5 @@ public class JsonMessage {
       this.value = value;
     }
 
-    
+
 }

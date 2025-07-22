@@ -1,9 +1,8 @@
 package com.ibm.cldk.entities;
 
-import lombok.Data;
-
 import java.util.ArrayList;
 import java.util.List;
+import lombok.Data;
 
 /**
  * Represents a callable entity in the source code, such as a method or constructor.

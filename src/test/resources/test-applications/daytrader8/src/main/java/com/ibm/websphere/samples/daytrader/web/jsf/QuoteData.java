@@ -15,10 +15,9 @@
  */
 package com.ibm.websphere.samples.daytrader.web.jsf;
 
+import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
-
-import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
 
 public class QuoteData {
     private BigDecimal price;

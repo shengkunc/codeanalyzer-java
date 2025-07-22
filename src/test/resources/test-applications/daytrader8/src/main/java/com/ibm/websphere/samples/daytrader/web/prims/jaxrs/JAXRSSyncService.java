@@ -34,7 +34,7 @@ public class JAXRSSyncService {
    * @return
    */
   @GET
-  @Path("echoText")   
+  @Path("echoText")
   public String echoString(@QueryParam("input") String input) {
     return input;
   }
@@ -60,4 +60,3 @@ public class JAXRSSyncService {
     return xmlObject;
   }
 }
-

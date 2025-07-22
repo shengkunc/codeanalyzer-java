@@ -16,7 +16,6 @@
 package com.ibm.websphere.samples.daytrader.web.prims.cdi;
 
 import java.io.Serializable;
-
 import javax.annotation.Priority;
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;

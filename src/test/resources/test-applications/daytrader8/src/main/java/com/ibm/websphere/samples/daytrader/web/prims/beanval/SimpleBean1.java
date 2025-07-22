@@ -18,7 +18,6 @@ package com.ibm.websphere.samples.daytrader.web.prims.beanval;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.validation.ConstraintViolation;

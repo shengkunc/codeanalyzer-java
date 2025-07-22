@@ -33,7 +33,7 @@ public class PingWebSocketTextAsync {
 
     private Session currentSession = null;
     private Integer hitCount = null;
-   
+
     @OnOpen
     public void onOpen(final Session session, EndpointConfig ec) {
         currentSession = session;
@@ -42,7 +42,7 @@ public class PingWebSocketTextAsync {
 
     @OnMessage
     public void ping(String text) {
-      
+
 
         hitCount++;
         currentSession.getAsyncRemote().sendText(hitCount.toString(), new SendHandler() {
@@ -54,7 +54,7 @@ public class PingWebSocketTextAsync {
             }
           }
         }
-        ); 
+        );
     }
 
     @OnError
@@ -64,7 +64,7 @@ public class PingWebSocketTextAsync {
 
     @OnClose
     public void onClose(Session session, CloseReason reason) {
-     
+
     }
 
 }

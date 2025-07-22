@@ -1,21 +1,5 @@
 package com.ibm.cldk;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
 import com.github.javaparser.*;
 import com.github.javaparser.ast.*;
 import com.github.javaparser.ast.body.*;
@@ -23,16 +7,13 @@ import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.comments.JavadocComment;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.nodeTypes.NodeWithJavadoc;
-import com.github.javaparser.ast.stmt.*;
-import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import com.ibm.cldk.entities.*;
-import com.ibm.cldk.javaee.EntrypointsFinderFactory;
-import org.apache.commons.lang3.tuple.Pair;
-
 import com.github.javaparser.ast.nodeTypes.NodeWithName;
+import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.type.ReferenceType;
 import com.github.javaparser.ast.type.Type;
+import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
+import com.github.javaparser.resolution.declarations.ResolvedMethodLikeDeclaration;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
@@ -42,10 +23,20 @@ import com.github.javaparser.utils.ProjectRoot;
 import com.github.javaparser.utils.SourceRoot;
 import com.google.common.collect.Table;
 import com.google.common.collect.Tables;
+import com.ibm.cldk.entities.*;
 import com.ibm.cldk.javaee.CRUDFinderFactory;
+import com.ibm.cldk.javaee.EntrypointsFinderFactory;
 import com.ibm.cldk.javaee.utils.enums.CRUDOperationType;
 import com.ibm.cldk.javaee.utils.enums.CRUDQueryType;
 import com.ibm.cldk.utils.Log;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.apache.commons.lang3.tuple.Pair;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class SymbolTable {
@@ -501,7 +492,7 @@ public class SymbolTable {
         callableNode.setFilePath(filePath);
 
         // add callable signature
-        callableNode.setSignature(callableDecl.getSignature().asString());
+        callableNode.setSignature(getTypeErasureSignature(callableDecl));
 
         // add comment associated with method/constructor
         callableNode.setComments(
@@ -581,9 +572,60 @@ public class SymbolTable {
         callableNode.setVariableDeclarations(getVariableDeclarations(body));
         callableNode.setCyclomaticComplexity(getCyclomaticComplexity(callableDecl));
 
-        String callableSignature = (callableDecl instanceof MethodDeclaration) ? callableDecl.getSignature().asString()
-                : callableDecl.getSignature().asString().replace(callableDecl.getSignature().getName(), "<init>");
+        String callableSignature = getTypeErasureSignature(callableDecl);
         return Pair.of(callableSignature, callableNode);
+    }
+
+    /**
+     * Returns type erasure signature for the given callable. Returns regular signature if an
+     * error occurs in getting erased types.
+     *
+     * @param callableDecl: Callable to compute type erasure signature for
+     * @return String representing type erasure or regular signature
+     */
+    private static String getTypeErasureSignature(CallableDeclaration callableDecl) {
+        try {
+            StringBuilder signature = new StringBuilder(
+                    (callableDecl instanceof MethodDeclaration) ? callableDecl.getNameAsString() : "<init>"
+            );
+            List<String> erasureParameterTypes = new ArrayList<>();
+            for (Object param : callableDecl.getParameters()) {
+                Parameter parameter = (Parameter) param;
+                ResolvedType resolvedType = parameter.getType().resolve();
+                if (parameter.isVarArgs()) {
+                    erasureParameterTypes.add(resolvedType.describe() + "[]");
+                } else {
+                    erasureParameterTypes.add(resolvedType.erasure().describe());
+                }
+            }
+            signature.append("(");
+            signature.append(String.join(", ", erasureParameterTypes));
+            signature.append(")");
+            return signature.toString();
+        } catch (Throwable e) {
+            Log.warn("Could not compute type erasure signature for "+callableDecl.getSignature().asString()+
+                    "; computing regular signature");
+            return callableDecl.getSignature().asString();
+        }
+    }
+
+    /**
+     * Returns type erasure signature for the given method or constructor declaration
+     * resolved for a call site.
+     *
+     * @param methodDecl: Resolved method/constructor to compute type erasure signature for
+     * @return String representing type erasure signature
+     */
+    private static String getTypeErasureSignature(ResolvedMethodLikeDeclaration methodDecl) {
+        StringBuilder signature = new StringBuilder(methodDecl.getName());
+        List<String> erasureParameterTypes = new ArrayList<>();
+        for (int i = 0; i < methodDecl.getNumberOfParams(); i++) {
+            erasureParameterTypes.add(methodDecl.getParam(i).getType().erasure().describe());
+        }
+        signature.append("(");
+        signature.append(String.join(", ", erasureParameterTypes));
+        signature.append(")");
+        return signature.toString();
     }
 
     private static boolean isEntryPointMethod(CallableDeclaration callableDecl) {
@@ -835,8 +877,8 @@ public class SymbolTable {
             // resolve callee and get signature
             String calleeSignature = "";
             try {
-                calleeSignature = methodCallExpr.resolve().getSignature();
-            } catch (RuntimeException exception) {
+                calleeSignature = getTypeErasureSignature(methodCallExpr.resolve());
+            } catch (Throwable exception) {
                 Log.debug("Could not resolve method call: " + methodCallExpr + ": " + exception.getMessage());
             }
 
@@ -845,12 +887,12 @@ public class SymbolTable {
             try {
                 ResolvedMethodDeclaration resolvedMethodDeclaration = methodCallExpr.resolve();
                 accessSpecifier = resolvedMethodDeclaration.accessSpecifier();
-            } catch (RuntimeException exception) {
+            } catch (Throwable exception) {
                 Log.debug("Could not resolve access specifier for method call: " + methodCallExpr + ": "
                         + exception.getMessage());
             }
             // resolve arguments of the method call to types
-            List<String> arguments = methodCallExpr.getArguments().stream().map(SymbolTable::resolveExpression)
+            List<String> argumentTypes = methodCallExpr.getArguments().stream().map(SymbolTable::resolveExpression)
                     .collect(Collectors.toList());
             // Get argument string from the callsite
             List<String> listOfArgumentStrings = methodCallExpr.getArguments().stream().map(Expression::toString)
@@ -886,7 +928,7 @@ public class SymbolTable {
 
 
             callSites.add(createCallSite(methodCallExpr, methodCallExpr.getNameAsString(), receiverName, declaringType,
-                    arguments, returnType, calleeSignature, isStaticCall, false, crudOperation, crudQuery,
+                    argumentTypes, listOfArgumentStrings, returnType, calleeSignature, isStaticCall, false, crudOperation, crudQuery,
                     accessSpecifier));
         }
 
@@ -895,14 +937,18 @@ public class SymbolTable {
             String instantiatedType = resolveType(objectCreationExpr.getType());
 
             // resolve arguments of the constructor call to types
-            List<String> arguments = objectCreationExpr.getArguments().stream().map(SymbolTable::resolveExpression)
+            List<String> argumentTypes = objectCreationExpr.getArguments().stream().map(SymbolTable::resolveExpression)
+                    .collect(Collectors.toList());
+
+            // get argument expressions for constructor call
+            List<String> argumentExpressions = objectCreationExpr.getArguments().stream().map(Expression::toString)
                     .collect(Collectors.toList());
 
             // resolve callee and get signature
             String calleeSignature = "";
             try {
-                calleeSignature = objectCreationExpr.resolve().getSignature();
-            } catch (RuntimeException exception) {
+                calleeSignature = getTypeErasureSignature(objectCreationExpr.resolve());
+            } catch (Throwable exception) {
                 Log.debug("Could not resolve constructor call: " + objectCreationExpr + ": " + exception.getMessage());
             }
 
@@ -911,7 +957,7 @@ public class SymbolTable {
                     .add(createCallSite(objectCreationExpr, "<init>",
                             objectCreationExpr.getScope().isPresent() ? objectCreationExpr.getScope().get().toString()
                                     : "",
-                            instantiatedType, arguments, instantiatedType, calleeSignature, false, true, null, null,
+                            instantiatedType, argumentTypes, argumentExpressions, instantiatedType, calleeSignature, false, true, null, null,
                             AccessSpecifier.NONE));
         }
 
@@ -962,9 +1008,15 @@ public class SymbolTable {
      * @param calleeName
      * @param receiverExpr
      * @param receiverType
-     * @param arguments
+     * @param argumentTypes
+     * @param argumentExpr
+     * @param returnType
+     * @param calleeSignature
      * @param isStaticCall
      * @param isConstructorCall
+     * @param crudOperation,
+     * @param crudQuery,
+     * @param accessSpecifier
      * @return
      */
     private static CallSite createCallSite(
@@ -972,7 +1024,8 @@ public class SymbolTable {
             String calleeName,
             String receiverExpr,
             String receiverType,
-            List<String> arguments,
+            List<String> argumentTypes,
+            List<String> argumentExpr,
             String returnType,
             String calleeSignature,
             boolean isStaticCall,
@@ -998,7 +1051,8 @@ public class SymbolTable {
         callSite.setMethodName(calleeName);
         callSite.setReceiverExpr(receiverExpr);
         callSite.setReceiverType(receiverType);
-        callSite.setArgumentTypes(arguments);
+        callSite.setArgumentTypes(argumentTypes);
+        callSite.setArgumentExpr(argumentExpr);
         callSite.setReturnType(returnType);
         callSite.setCalleeSignature(calleeSignature);
         callSite.setStaticCall(isStaticCall);
@@ -1039,7 +1093,7 @@ public class SymbolTable {
                 if (resolvedType.isReferenceType() || resolvedType.isUnionType()) {
                     return resolvedType.describe();
                 }
-            } catch (RuntimeException exception) {
+            } catch (Throwable exception) {
                 Log.debug("Could not resolve expression: " + expression + ": " + exception.getMessage());
                 unresolvedExpressions.add(expression.toString());
             }
@@ -1060,7 +1114,7 @@ public class SymbolTable {
         if (!unresolvedTypes.contains(type.asString())) {
             try {
                 return type.resolve().describe();
-            } catch (RuntimeException e) {
+            } catch (Throwable e) {
                 Log.warn("Could not resolve type: " + type.asString() + ": " + e.getMessage());
                 unresolvedTypes.add(type.asString());
             }
@@ -1079,6 +1133,20 @@ public class SymbolTable {
      *         project
      * @throws IOException
      */
+    private static final String[] EXCLUDED_SOURCE_ROOTS = {
+            Paths.get("src", "test", "resources").toString(),
+            Paths.get("src", "it", "resources").toString(),
+            Paths.get("src", "xdocs-examples").toString()
+    };
+    private static boolean excludeSourceRoot(Path sourceRoot) {
+        for (String excludedSrcRoot : EXCLUDED_SOURCE_ROOTS) {
+            if (Pattern.compile(excludedSrcRoot).matcher(sourceRoot.toString()).find()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static Pair<Map<String, JavaCompilationUnit>, Map<String, List<Problem>>> extractAll(Path projectRootPath)
             throws IOException {
         SymbolSolverCollectionStrategy symbolSolverCollectionStrategy = new SymbolSolverCollectionStrategy();
@@ -1088,6 +1156,9 @@ public class SymbolTable {
         Map<String, JavaCompilationUnit> symbolTable = new LinkedHashMap<>();
         Map<String, List<Problem>> parseProblems = new HashMap<>();
         for (SourceRoot sourceRoot : projectRoot.getSourceRoots()) {
+            if (excludeSourceRoot(sourceRoot.getRoot())) {
+                continue;
+            }
             for (ParseResult<CompilationUnit> parseResult : sourceRoot.tryToParse()) {
                 if (parseResult.isSuccessful()) {
                     CompilationUnit compilationUnit = LexicalPreservingPrinter.setup(parseResult.getResult().get());

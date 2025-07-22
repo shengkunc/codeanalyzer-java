@@ -15,16 +15,15 @@
  */
 package com.ibm.websphere.samples.daytrader.impl.direct;
 
+import com.ibm.websphere.samples.daytrader.util.KeyBlock;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-
-import com.ibm.websphere.samples.daytrader.util.KeyBlock;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 public class KeySequenceDirect {
 
@@ -48,9 +47,9 @@ public class KeySequenceDirect {
         // get and return a new unique key
         nextID = (Integer) ids.next();
 
-        
+
         Log.trace("KeySequenceDirect:getNextID inSession(" + inSession + ") - return new PK ID for Entity type: " + keyName + " ID=" + nextID);
-        
+
         return nextID;
     }
 

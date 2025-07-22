@@ -16,20 +16,18 @@
 
 package com.ibm.websphere.samples.daytrader.web.prims;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
 import java.io.IOException;
-
 import javax.servlet.ReadListener;
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
 import javax.servlet.ServletOutputStream;
+import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpUpgradeHandler;
 import javax.servlet.http.WebConnection;
-import javax.servlet.annotation.WebServlet;
-
-import com.ibm.websphere.samples.daytrader.util.Log;
 
 @WebServlet(name = "PingUpgradeServlet", urlPatterns = { "/servlet/PingUpgradeServlet" }, asyncSupported=true)
 public class PingUpgradeServlet extends HttpServlet {
@@ -58,7 +56,7 @@ public class PingUpgradeServlet extends HttpServlet {
       res.setHeader("Upgrade", "echo");
       res.setHeader("Connection", "Upgrade");
 
-      req.upgrade(Handler.class);          
+      req.upgrade(Handler.class);
 
     } else {
 
@@ -98,7 +96,7 @@ public class PingUpgradeServlet extends HttpServlet {
     }
 
     @Override
-    public void destroy() {     
+    public void destroy() {
       Log.trace("PingUpgradeServlet$Handler.destroy() -- Destroying Handler");
     }
   }

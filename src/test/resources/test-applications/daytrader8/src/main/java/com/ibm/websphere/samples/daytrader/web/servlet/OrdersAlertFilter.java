@@ -15,9 +15,14 @@
  */
 package com.ibm.websphere.samples.daytrader.web.servlet;
 
+import com.ibm.websphere.samples.daytrader.interfaces.Trace;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.util.Diagnostics;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
+import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
 import java.io.IOException;
 import java.util.Collection;
-
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
@@ -30,20 +35,13 @@ import javax.servlet.ServletResponse;
 import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
 
-import com.ibm.websphere.samples.daytrader.interfaces.Trace;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.util.Diagnostics;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
-import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
-
 @WebFilter(filterName = "OrdersAlertFilter", urlPatterns = "/app")
 @Trace
 public class OrdersAlertFilter implements Filter {
-	
+
   private TradeServices tradeAction;
 
-  @Inject 
+  @Inject
   public OrdersAlertFilter(@Any Instance<TradeServices> services) {
     super();
     tradeAction = services.select(new TradeRunTimeModeLiteral(TradeConfig.getRunTimeModeNames()[TradeConfig.getRunTimeMode()])).get();
@@ -99,7 +97,7 @@ public class OrdersAlertFilter implements Filter {
         Log.error(e, "OrdersAlertFilter - Error checking for closedOrders");
       }
     }
-    
+
     Diagnostics.checkDiagnostics();
 
     chain.doFilter(req, resp/* wrapper */);

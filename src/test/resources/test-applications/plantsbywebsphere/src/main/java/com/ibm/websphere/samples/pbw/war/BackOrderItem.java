@@ -1,15 +1,15 @@
 //
-// COPYRIGHT LICENSE: This information contains sample code provided in source code form. You may copy, 
-// modify, and distribute these sample programs in any form without payment to IBM for the purposes of 
-// developing, using, marketing or distributing application programs conforming to the application 
-// programming interface for the operating platform for which the sample code is written. 
-// Notwithstanding anything to the contrary, IBM PROVIDES THE SAMPLE SOURCE CODE ON AN "AS IS" BASIS 
-// AND IBM DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, ANY IMPLIED 
-// WARRANTIES OR CONDITIONS OF MERCHANTABILITY, SATISFACTORY QUALITY, FITNESS FOR A PARTICULAR PURPOSE, 
-// TITLE, AND ANY WARRANTY OR CONDITION OF NON-INFRINGEMENT. IBM SHALL NOT BE LIABLE FOR ANY DIRECT, 
-// INDIRECT, INCIDENTAL, SPECIAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR OPERATION OF THE 
-// SAMPLE SOURCE CODE. IBM HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS 
-// OR MODIFICATIONS TO THE SAMPLE SOURCE CODE.  
+// COPYRIGHT LICENSE: This information contains sample code provided in source code form. You may copy,
+// modify, and distribute these sample programs in any form without payment to IBM for the purposes of
+// developing, using, marketing or distributing application programs conforming to the application
+// programming interface for the operating platform for which the sample code is written.
+// Notwithstanding anything to the contrary, IBM PROVIDES THE SAMPLE SOURCE CODE ON AN "AS IS" BASIS
+// AND IBM DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, ANY IMPLIED
+// WARRANTIES OR CONDITIONS OF MERCHANTABILITY, SATISFACTORY QUALITY, FITNESS FOR A PARTICULAR PURPOSE,
+// TITLE, AND ANY WARRANTY OR CONDITION OF NON-INFRINGEMENT. IBM SHALL NOT BE LIABLE FOR ANY DIRECT,
+// INDIRECT, INCIDENTAL, SPECIAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR OPERATION OF THE
+// SAMPLE SOURCE CODE. IBM HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS
+// OR MODIFICATIONS TO THE SAMPLE SOURCE CODE.
 //
 // (C) COPYRIGHT International Business Machines Corp., 2003,2011
 // All Rights Reserved * Licensed Materials - Property of IBM
@@ -25,7 +25,7 @@ import com.ibm.websphere.samples.pbw.utils.Util;
  */
 public class BackOrderItem implements java.io.Serializable {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 	private String name;
@@ -47,7 +47,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method BackOrderItem.
-	 * 
+	 *
 	 * @param backOrderID
 	 * @param inventoryID
 	 * @param name
@@ -64,7 +64,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method BackOrderItem.
-	 * 
+	 *
 	 * @param backOrder
 	 */
 	public BackOrderItem(BackOrder backOrder) {
@@ -83,7 +83,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method getBackOrderID.
-	 * 
+	 *
 	 * @return String
 	 */
 	public String getBackOrderID() {
@@ -92,7 +92,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method setBackOrderID.
-	 * 
+	 *
 	 * @param backOrderID
 	 */
 	public void setBackOrderID(String backOrderID) {
@@ -101,7 +101,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method getSupplierOrderID.
-	 * 
+	 *
 	 * @return String
 	 */
 	public String getSupplierOrderID() {
@@ -110,7 +110,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method setSupplierOrderID.
-	 * 
+	 *
 	 * @param supplierOrderID
 	 */
 	public void setSupplierOrderID(String supplierOrderID) {
@@ -119,7 +119,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method setQuantity.
-	 * 
+	 *
 	 * @param quantity
 	 */
 	public void setQuantity(int quantity) {
@@ -128,7 +128,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method getInventoryID.
-	 * 
+	 *
 	 * @return String
 	 */
 	public Inventory getInventory() {
@@ -137,7 +137,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method getName.
-	 * 
+	 *
 	 * @return String
 	 */
 	public String getName() {
@@ -146,7 +146,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method setName.
-	 * 
+	 *
 	 * @param name
 	 */
 	public void setName(String name) {
@@ -155,7 +155,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method getQuantity.
-	 * 
+	 *
 	 * @return int
 	 */
 	public int getQuantity() {
@@ -164,7 +164,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method getInventoryQuantity.
-	 * 
+	 *
 	 * @return int
 	 */
 	public int getInventoryQuantity() {
@@ -173,7 +173,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method setInventoryQuantity.
-	 * 
+	 *
 	 * @param quantity
 	 */
 	public void setInventoryQuantity(int quantity) {
@@ -182,7 +182,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method getStatus.
-	 * 
+	 *
 	 * @return String
 	 */
 	public String getStatus() {
@@ -191,7 +191,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method getLowDate.
-	 * 
+	 *
 	 * @return long
 	 */
 	public long getLowDate() {
@@ -200,7 +200,7 @@ public class BackOrderItem implements java.io.Serializable {
 
 	/**
 	 * Method getOrderDate.
-	 * 
+	 *
 	 * @return long
 	 */
 	public long getOrderDate() {

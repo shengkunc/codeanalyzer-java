@@ -15,8 +15,12 @@
  */
 package com.ibm.websphere.samples.daytrader.web.prims.ejb3;
 
+import com.ibm.websphere.samples.daytrader.impl.ejb3.TradeSLSBBean;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeEJB;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.io.IOException;
-
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.servlet.ServletConfig;
@@ -25,12 +29,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import com.ibm.websphere.samples.daytrader.impl.ejb3.TradeSLSBBean;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeEJB;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 /**
  *
@@ -55,7 +53,7 @@ public class PingServlet2Session extends HttpServlet {
     @TradeEJB
     private TradeServices tradeSLSBLocal;
 
-    
+
     @Override
     public void doPost(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         doGet(req, res);

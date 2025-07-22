@@ -15,8 +15,12 @@
  */
 package com.ibm.websphere.samples.daytrader.web.prims;
 
+import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeJDBC;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.io.IOException;
-
 import javax.inject.Inject;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -24,12 +28,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeJDBC;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 /**
  *
@@ -48,7 +46,7 @@ public class PingJDBCRead extends HttpServlet {
   @Inject
   @TradeJDBC
   TradeServices trade;
-  
+
     private static final long serialVersionUID = -8810390150632488526L;
     private static String initTime;
     private static int hitCount;
@@ -86,7 +84,7 @@ public class PingJDBCRead extends HttpServlet {
         try {
             // TradeJDBC uses prepared statements so I am going to make use of
             // it's code.
-            
+
             symbol = TradeConfig.rndSymbol();
 
             QuoteDataBean quoteData = null;

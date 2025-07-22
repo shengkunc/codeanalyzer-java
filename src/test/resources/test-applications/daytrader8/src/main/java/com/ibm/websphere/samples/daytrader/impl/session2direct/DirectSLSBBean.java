@@ -15,23 +15,6 @@
  */
 package com.ibm.websphere.samples.daytrader.impl.session2direct;
 
-import java.math.BigDecimal;
-import java.util.Collection;
-import java.util.concurrent.Future;
-
-import javax.ejb.Stateless;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
-import javax.ejb.TransactionManagement;
-import javax.ejb.TransactionManagementType;
-import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
-
-import com.ibm.websphere.samples.daytrader.interfaces.RuntimeMode;
-import com.ibm.websphere.samples.daytrader.interfaces.Trace;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeJDBC;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeSession2Direct;
 import com.ibm.websphere.samples.daytrader.beans.MarketSummaryDataBean;
 import com.ibm.websphere.samples.daytrader.entities.AccountDataBean;
 import com.ibm.websphere.samples.daytrader.entities.AccountProfileDataBean;
@@ -39,7 +22,22 @@ import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
 import com.ibm.websphere.samples.daytrader.entities.OrderDataBean;
 import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
 import com.ibm.websphere.samples.daytrader.impl.ejb3.AsyncScheduledOrderSubmitter;
+import com.ibm.websphere.samples.daytrader.interfaces.RuntimeMode;
+import com.ibm.websphere.samples.daytrader.interfaces.Trace;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeJDBC;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeSession2Direct;
 import com.ibm.websphere.samples.daytrader.util.TradeConfig;
+import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.concurrent.Future;
+import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
+import javax.ejb.TransactionManagement;
+import javax.ejb.TransactionManagementType;
+import javax.inject.Inject;
+import javax.validation.constraints.NotNull;
 
 @Stateless
 @TradeSession2Direct
@@ -52,9 +50,9 @@ public class DirectSLSBBean implements TradeServices {
   @Inject
   @TradeJDBC
   TradeServices tradeDirect;
-  
-  @Inject 
-  AsyncScheduledOrderSubmitter asyncEJBOrderSubmitter; 
+
+  @Inject
+  AsyncScheduledOrderSubmitter asyncEJBOrderSubmitter;
 
   @Override
   public int getImpl() {
@@ -79,12 +77,12 @@ public class DirectSLSBBean implements TradeServices {
   public OrderDataBean buy(String userID, String symbol, double quantity, int orderProcessingMode) throws Exception {
     tradeDirect.setInSession(true);
      OrderDataBean orderdata = tradeDirect.buy(userID, symbol, quantity, orderProcessingMode);
-    
+
     if (orderProcessingMode == TradeConfig.ASYNCH) {
       this.completeOrderAsync(orderdata.getOrderID(), false);
     }
-    
-    return orderdata; 
+
+    return orderdata;
   }
 
   @Override
@@ -92,12 +90,12 @@ public class DirectSLSBBean implements TradeServices {
   public OrderDataBean sell(String userID, Integer holdingID, int orderProcessingMode) throws Exception {
     tradeDirect.setInSession(true);
     OrderDataBean orderdata =  tradeDirect.sell(userID, holdingID, orderProcessingMode);
-    
+
     if (orderProcessingMode == TradeConfig.ASYNCH) {
       this.completeOrderAsync(orderdata.getOrderID(), false);
     }
     return orderdata;
-    
+
   }
 
   @Override
@@ -154,7 +152,7 @@ public class DirectSLSBBean implements TradeServices {
   @Override
   public QuoteDataBean getQuote(String symbol) throws Exception {
     tradeDirect.setInSession(true);
-    return tradeDirect.getQuote(symbol); 
+    return tradeDirect.getQuote(symbol);
   }
 
   @Override

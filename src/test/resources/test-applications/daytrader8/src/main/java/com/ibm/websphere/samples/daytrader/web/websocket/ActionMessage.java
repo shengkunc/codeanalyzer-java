@@ -15,12 +15,10 @@
  */
 package com.ibm.websphere.samples.daytrader.web.websocket;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
 import java.io.StringReader;
-
 import javax.json.Json;
 import javax.json.stream.JsonParser;
-
-import com.ibm.websphere.samples.daytrader.util.Log;
 
 /**
  *  Licensed to the Apache Software Foundation (ASF) under one or more
@@ -42,13 +40,13 @@ public class ActionMessage {
 
   String decodedAction = null;
 
-  public ActionMessage() {  
+  public ActionMessage() {
   }
 
   public void doDecoding(String jsonText) {
 
     String keyName = null;
-    try 
+    try
     {
       // JSON parse
       JsonParser parser = Json.createParser(new StringReader(jsonText));
@@ -82,4 +80,3 @@ public String getDecodedAction() {
 }
 
 }
-

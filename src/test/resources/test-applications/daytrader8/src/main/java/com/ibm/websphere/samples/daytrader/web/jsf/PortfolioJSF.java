@@ -15,11 +15,18 @@
  */
 package com.ibm.websphere.samples.daytrader.web.jsf;
 
+import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
+import com.ibm.websphere.samples.daytrader.entities.OrderDataBean;
+import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
+import com.ibm.websphere.samples.daytrader.interfaces.Trace;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
+import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.RequestScoped;
 import javax.enterprise.inject.Any;
@@ -29,17 +36,7 @@ import javax.faces.context.ExternalContext;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.servlet.http.HttpSession;
-
 import javax.validation.constraints.PositiveOrZero;
-
-import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
-import com.ibm.websphere.samples.daytrader.entities.OrderDataBean;
-import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
-import com.ibm.websphere.samples.daytrader.interfaces.Trace;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
-import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
 
 @Named("portfolio")
 @RequestScoped
@@ -52,10 +49,10 @@ public class PortfolioJSF {
 
   private BigDecimal balance;
   private BigDecimal openBalance;
-  
+
   @PositiveOrZero
   private Integer numberHoldings;
-  
+
   private BigDecimal holdingsTotal;
   private BigDecimal sumOfCashHoldings;
   private BigDecimal totalGain = new BigDecimal(0.0);
@@ -65,13 +62,13 @@ public class PortfolioJSF {
   private ArrayList<HoldingData> holdingDatas;
   private HtmlDataTable dataTable;
 
-  @Inject 
+  @Inject
   public PortfolioJSF(@Any Instance<TradeServices> services) {
     tradeAction = services.select(new TradeRunTimeModeLiteral(TradeConfig.getRunTimeModeNames()[TradeConfig.getRunTimeMode()])).get();
   }
 
   @PostConstruct
-  public void getPortfolio() {            
+  public void getPortfolio() {
     try {
 
       HttpSession session = (HttpSession) context.getSession(true);

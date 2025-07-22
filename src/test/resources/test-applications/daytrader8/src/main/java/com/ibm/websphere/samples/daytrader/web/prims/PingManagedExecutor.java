@@ -16,7 +16,6 @@
 package com.ibm.websphere.samples.daytrader.web.prims;
 
 import java.io.IOException;
-
 import javax.annotation.Resource;
 import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.servlet.AsyncContext;
@@ -35,9 +34,9 @@ public class PingManagedExecutor extends HttpServlet{
 	private static String initTime;
     private static int hitCount;
 
-	@Resource 
+	@Resource
 	private ManagedExecutorService mes;
-	
+
 	 /**
      * forwards post requests to the doGet method Creation date: (03/18/2014
      * 10:52:39 AM)
@@ -66,14 +65,14 @@ public class PingManagedExecutor extends HttpServlet{
 
     	final AsyncContext asyncContext = req.startAsync();
         final ServletOutputStream out = res.getOutputStream();
-    	
+
     	try {
     		res.setContentType("text/html");
-    		    		
+
     		out.println("<html><head><title>Ping ManagedExecutor</title></head>"
                     + "<body><HR><BR><FONT size=\"+2\" color=\"#000066\">Ping ManagedExecutor<BR></FONT><FONT size=\"+1\" color=\"#000066\">Init time : " + initTime
                     + "<BR><BR></FONT>  </body></html>");
-    		   		   		    	
+
     		// Runnable task
     		mes.submit(new Runnable() {
     			@Override
@@ -85,15 +84,15 @@ public class PingManagedExecutor extends HttpServlet{
 					}
     				asyncContext.complete();
     			}
-    		});   		    		
-    		
-    			 
+    		});
+
+
     	} catch (Exception e) {
 			e.printStackTrace();
-		}  
-    }	
-    		
-    	
+		}
+    }
+
+
     /**
      * returns a string of information about the servlet
      *
@@ -116,5 +115,5 @@ public class PingManagedExecutor extends HttpServlet{
         initTime = new java.util.Date().toString();
         hitCount = 0;
     }
-	
+
 }

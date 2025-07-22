@@ -1,5 +1,10 @@
 package com.ibm.cldk.utils;
 
+import static com.ibm.cldk.CodeAnalyzer.includeTestClasses;
+import static com.ibm.cldk.CodeAnalyzer.noCleanDependencies;
+import static com.ibm.cldk.CodeAnalyzer.projectRootPom;
+import static com.ibm.cldk.utils.ProjectDirectoryScanner.classFilesStream;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -11,12 +16,6 @@ import java.text.MessageFormat;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
-
-
-import static com.ibm.cldk.utils.ProjectDirectoryScanner.classFilesStream;
-import static com.ibm.cldk.CodeAnalyzer.projectRootPom;
-import static com.ibm.cldk.CodeAnalyzer.noCleanDependencies;
-import static com.ibm.cldk.CodeAnalyzer.includeTestClasses;
 
 public class BuildProject {
     public static Path libDownloadPath;

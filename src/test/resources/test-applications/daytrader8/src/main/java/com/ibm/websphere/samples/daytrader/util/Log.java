@@ -155,7 +155,7 @@ public class Log {
   public static boolean doTrace() {
     return log.isLoggable(Level.FINE);
   }
-  
+
   public static void warning(String message) {
     log.log(Level.WARNING, message);
   }

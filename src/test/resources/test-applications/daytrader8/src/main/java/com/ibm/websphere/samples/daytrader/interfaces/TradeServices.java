@@ -15,16 +15,15 @@
  */
 package com.ibm.websphere.samples.daytrader.interfaces;
 
-import java.math.BigDecimal;
-import java.util.Collection;
-import java.util.concurrent.Future;
-
 import com.ibm.websphere.samples.daytrader.beans.MarketSummaryDataBean;
 import com.ibm.websphere.samples.daytrader.entities.AccountDataBean;
 import com.ibm.websphere.samples.daytrader.entities.AccountProfileDataBean;
 import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
 import com.ibm.websphere.samples.daytrader.entities.OrderDataBean;
 import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
+import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.concurrent.Future;
 
 /**
  * TradeServices interface specifies the business methods provided by the Trade
@@ -64,12 +63,12 @@ public interface TradeServices {
      * @param orderType
      *            buy or sell
      * @param quantity
-     *            quantity            
+     *            quantity
      * @return Collection OrderDataBeans providing detailed order information
      */
     OrderDataBean createOrder(AccountDataBean account, QuoteDataBean quote, HoldingDataBean holding, String orderType,
         double quantity) throws Exception;
-    
+
     /**
      * Purchase a stock and create a new holding for the given user. Given a
      * stock symbol and quantity to purchase, retrieve the current quote price,
@@ -133,7 +132,7 @@ public interface TradeServices {
     OrderDataBean completeOrder(Integer orderID, boolean twoPhase) throws Exception;
 
     /**
-     * Complete the Order identefied by orderID Orders are completed 
+     * Complete the Order identefied by orderID Orders are completed
      * asynchronously. This method completes
      * the order For a buy, the stock is purchased creating a holding and the
      * users account is debited For a sell, the stock holding is removed and the
@@ -147,7 +146,7 @@ public interface TradeServices {
      * @return OrderDataBean providing the status of the completed order
      */
     Future<OrderDataBean> completeOrderAsync(Integer orderID, boolean twoPhase) throws Exception;
-    
+
     /**
      * Cancel the Order identefied by orderID
      *
@@ -327,7 +326,7 @@ public interface TradeServices {
     AccountDataBean register(String userID, String password, String fullname, String address, String email, String creditcard, BigDecimal openBalance)
             throws Exception;
 
-    
+
     int getImpl();
 
     QuoteDataBean pingTwoPhase(String symbol) throws Exception;

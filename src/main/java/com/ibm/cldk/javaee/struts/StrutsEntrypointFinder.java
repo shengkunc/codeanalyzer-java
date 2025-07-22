@@ -9,7 +9,6 @@ import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.ibm.cldk.javaee.utils.interfaces.AbstractEntrypointFinder;
 import com.ibm.cldk.utils.Log;
-
 import java.util.Optional;
 
 public class StrutsEntrypointFinder extends AbstractEntrypointFinder {
@@ -34,7 +33,7 @@ public class StrutsEntrypointFinder extends AbstractEntrypointFinder {
                 String name = ancestor.getQualifiedName();
                 return name.contains("ActionSupport") || name.contains("Interceptor");
             });
-        } catch (UnsolvedSymbolException e) {
+        } catch (RuntimeException e) {
             Log.warn("Could not resolve class: " + e.getMessage());
         }
 

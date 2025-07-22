@@ -16,10 +16,6 @@
 package com.ibm.websphere.samples.daytrader.web.prims;
 
 import java.io.IOException;
-//import java.util.Collections;
-//import java.util.HashSet;
-//import java.util.Set;
-
 import javax.websocket.CloseReason;
 import javax.websocket.EndpointConfig;
 import javax.websocket.OnClose;
@@ -36,7 +32,7 @@ public class PingWebSocketTextSync {
 
     private Session currentSession = null;
     private Integer hitCount = null;
-   
+
     @OnOpen
     public void onOpen(final Session session, EndpointConfig ec) {
         currentSession = session;
@@ -46,7 +42,7 @@ public class PingWebSocketTextSync {
     @OnMessage
     public void ping(String text) {
         hitCount++;
-    
+
         try {
             currentSession.getBasicRemote().sendText(hitCount.toString());
         } catch (IOException e) {
@@ -61,7 +57,7 @@ public class PingWebSocketTextSync {
 
     @OnClose
     public void onClose(Session session, CloseReason reason) {
-               
+
     }
 
 }

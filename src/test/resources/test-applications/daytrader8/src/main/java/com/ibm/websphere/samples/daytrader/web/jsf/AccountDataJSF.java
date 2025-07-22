@@ -15,12 +15,19 @@
  */
 package com.ibm.websphere.samples.daytrader.web.jsf;
 
+import com.ibm.websphere.samples.daytrader.entities.AccountDataBean;
+import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
+import com.ibm.websphere.samples.daytrader.entities.OrderDataBean;
+import com.ibm.websphere.samples.daytrader.interfaces.Trace;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
+import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
-
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.RequestScoped;
 import javax.enterprise.inject.Any;
@@ -32,20 +39,11 @@ import javax.servlet.http.HttpSession;
 import javax.validation.constraints.PastOrPresent;
 import javax.validation.constraints.PositiveOrZero;
 
-import com.ibm.websphere.samples.daytrader.entities.AccountDataBean;
-import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
-import com.ibm.websphere.samples.daytrader.entities.OrderDataBean;
-import com.ibm.websphere.samples.daytrader.interfaces.Trace;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
-import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
-
 @Named("accountdata")
 @RequestScoped
 @Trace
 public class AccountDataJSF {
-  
+
   @Inject
   private ExternalContext context;
 
@@ -55,16 +53,16 @@ public class AccountDataJSF {
   private Date currentTime;
   private String profileID;
   private Integer accountID;
-  
+
   @PastOrPresent
   private Date creationDate;
-  
+
   @PositiveOrZero
   private int loginCount;
-  
+
   @PastOrPresent
   private Date lastLogin;
-  
+
   @PositiveOrZero
   private int logoutCount;
   private BigDecimal balance;
@@ -76,7 +74,7 @@ public class AccountDataJSF {
   private BigDecimal gainPercent;
 
   private OrderData[] closedOrders;
-  private OrderData[] allOrders;  
+  private OrderData[] allOrders;
 
   private Integer numberOfOrders = 0;
   private Integer numberOfOrderRows = 5;
@@ -85,7 +83,7 @@ public class AccountDataJSF {
     setNumberOfOrderRows(0);
   }
 
-  @Inject 
+  @Inject
   public AccountDataJSF(@Any Instance<TradeServices> services) {
     tradeAction = services.select(new TradeRunTimeModeLiteral(TradeConfig.getRunTimeModeNames()[TradeConfig.getRunTimeMode()])).get();
   }
@@ -98,7 +96,7 @@ public class AccountDataJSF {
       // Get the data and then parse
       String userID = (String) session.getAttribute("uidBean");
       AccountDataBean accountData = tradeAction.getAccountData(userID);
-      Collection<HoldingDataBean> holdingDataBeans = tradeAction.getHoldings(userID); 
+      Collection<HoldingDataBean> holdingDataBeans = tradeAction.getHoldings(userID);
 
       if (TradeConfig.getDisplayOrderAlerts()) {
 

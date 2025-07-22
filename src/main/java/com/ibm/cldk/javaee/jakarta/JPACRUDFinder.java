@@ -3,7 +3,6 @@ package com.ibm.cldk.javaee.jakarta;
 import com.ibm.cldk.javaee.utils.enums.CRUDOperationType;
 import com.ibm.cldk.javaee.utils.enums.JPAQueryMethod;
 import com.ibm.cldk.javaee.utils.interfaces.AbstractCRUDFinder;
-
 import java.util.List;
 import java.util.Optional;
 

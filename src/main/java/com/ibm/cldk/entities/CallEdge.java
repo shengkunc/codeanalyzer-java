@@ -13,11 +13,10 @@ limitations under the License.
 
 package com.ibm.cldk.entities;
 
-import org.jgrapht.nio.Attribute;
-import org.jgrapht.nio.DefaultAttribute;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.jgrapht.nio.Attribute;
+import org.jgrapht.nio.DefaultAttribute;
 
 /**
  * The type Call edge.

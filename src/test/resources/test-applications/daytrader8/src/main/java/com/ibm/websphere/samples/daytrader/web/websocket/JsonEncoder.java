@@ -33,7 +33,7 @@ public class JsonEncoder implements Encoder.Text<JsonMessage>{
 
     @Override
     public String encode(JsonMessage message) throws EncodeException {
-        
+
         JsonObject jsonObject = Json.createObjectBuilder()
                 .add("key", message.getKey())
                 .add("value", message.getValue()).build();
@@ -41,6 +41,6 @@ public class JsonEncoder implements Encoder.Text<JsonMessage>{
         return jsonObject.toString();
     }
 
-   
+
 
 }

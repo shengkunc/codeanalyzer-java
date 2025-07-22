@@ -15,6 +15,10 @@
  */
 package com.ibm.websphere.samples.daytrader.mdb;
 
+import com.ibm.websphere.samples.daytrader.interfaces.Trace;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.MDBStats;
+import com.ibm.websphere.samples.daytrader.util.TimerStat;
 import javax.annotation.Resource;
 import javax.ejb.ActivationConfigProperty;
 import javax.ejb.MessageDriven;
@@ -26,12 +30,6 @@ import javax.ejb.TransactionManagementType;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
-
-
-import com.ibm.websphere.samples.daytrader.interfaces.Trace;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.MDBStats;
-import com.ibm.websphere.samples.daytrader.util.TimerStat;
 
 //For Glassfish/Payara - take jms/ off of the destination name
 
@@ -50,12 +48,12 @@ public class DTStreamer3MDB implements MessageListener {
 
   @Resource
   public MessageDrivenContext mdc;
- 
+
 
   /** Creates a new instance of TradeSteamerMDB */
   public DTStreamer3MDB() {
     Log.trace("DTStreamer3MDB:DTStreamer3MDB()");
-    
+
     if (statInterval <= 0) {
       statInterval = 10000;
     }
@@ -68,7 +66,7 @@ public class DTStreamer3MDB implements MessageListener {
     try {
       Log.trace("DTStreamer3MDB:onMessage -- received message -->" + ((TextMessage) message).getText() + "command-->"
           + message.getStringProperty("command") + "<--");
-      
+
       String command = message.getStringProperty("command");
       if (command == null) {
         Log.debug("DTStreamer3MDB:onMessage -- received message with null command. Message-->" + message);
@@ -78,7 +76,7 @@ public class DTStreamer3MDB implements MessageListener {
         Log.trace("DTStreamer3MDB:onMessage -- received message -->" + ((TextMessage) message).getText() + "\n\t symbol = "
               + message.getStringProperty("symbol") + "\n\t current price =" + message.getStringProperty("price") + "\n\t old price ="
               + message.getStringProperty("oldPrice"));
-        
+
         long publishTime = message.getLongProperty("publishTime");
         long receiveTime = System.currentTimeMillis();
 
@@ -94,7 +92,7 @@ public class DTStreamer3MDB implements MessageListener {
         }
       } else if (command.equalsIgnoreCase("ping")) {
         Log.trace("DTStreamer3MDB:onMessage  received ping command -- message: " + ((TextMessage) message).getText());
-        
+
 
         long publishTime = message.getLongProperty("publishTime");
         long receiveTime = System.currentTimeMillis();

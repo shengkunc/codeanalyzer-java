@@ -15,11 +15,13 @@
  */
 package com.ibm.websphere.samples.daytrader.web.servlet;
 
+import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.Iterator;
-
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -28,10 +30,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-
-import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 /**
  * TradeScenarioServlet emulates a population of web users by generating a
@@ -256,7 +254,7 @@ public class TradeScenarioServlet extends HttpServlet {
                 }
 
                 Log.trace("TradeScenario: No holding to sell -switch to buy -- userID = " + userID + "  Collection count = " + numHoldings);
-                
+
 
             }
             // At this point: A TradeScenario Sell was requested with No Stocks

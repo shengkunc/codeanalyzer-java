@@ -15,9 +15,9 @@
  */
 package com.ibm.websphere.samples.daytrader.web.prims.beanval;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
 import java.io.IOException;
 import java.time.LocalDateTime;
-
 import javax.inject.Inject;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -27,13 +27,11 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.ibm.websphere.samples.daytrader.util.Log;
-
 @WebServlet(name = "PingServletBeanValCDI", urlPatterns = { "/servlet/PingServletBeanValCDI" })
 public class PingServletBeanValCDI  extends HttpServlet {
 
   @Inject CDIMethodConstraintBean hitCountBean;
-  
+
   private static final long serialVersionUID = 7097023236709683760L;
   private static LocalDateTime initTime;
 
@@ -70,7 +68,7 @@ public class PingServletBeanValCDI  extends HttpServlet {
 
       int currentHitCount = hitCountBean.getHitCount(initTime);
       hitCountBean.hitList();
-      
+
       out.println("<html><head><title>Ping Servlet Bean Validation CDI</title></head>"
           + "<body><HR><BR><FONT size=\"+2\" color=\"#000066\">Ping Servlet Bean Validation CDI<BR></FONT><FONT size=\"+1\" color=\"#000066\">Init time : " + initTime
           + "<BR><BR></FONT>  <B>Hit Count: " + currentHitCount + "</B></body></html>");
@@ -101,7 +99,7 @@ public class PingServletBeanValCDI  extends HttpServlet {
   public void init(ServletConfig config) throws ServletException {
     super.init(config);
     initTime = LocalDateTime.now();
-    
+
 
   }
 }

@@ -15,10 +15,10 @@
  */
 package com.ibm.websphere.samples.daytrader.web.prims;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
@@ -32,11 +32,9 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.ibm.websphere.samples.daytrader.util.Log;
-
 /**
  *
- * PingJSONP tests JSON generating and parsing 
+ * PingJSONP tests JSON generating and parsing
  *
  */
 
@@ -45,7 +43,7 @@ public class PingJSONPObject extends HttpServlet {
 
 
   /**
-   * 
+   *
    */
   private static final long serialVersionUID = -5348806619121122708L;
   private static String initTime;
@@ -91,7 +89,7 @@ public class PingJSONPObject extends HttpServlet {
 
       // Read back
       JsonReader jsonReader = Json.createReader(new StringReader(generatedJSON));
-      String parsedJSON = jsonReader.readObject().toString();        
+      String parsedJSON = jsonReader.readObject().toString();
 
 
       out.println("<html><head><title>Ping JSONP</title></head>"

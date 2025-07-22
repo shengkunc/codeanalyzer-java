@@ -15,8 +15,8 @@
  */
 package com.ibm.websphere.samples.daytrader.web.prims;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
 import java.io.IOException;
-
 import javax.annotation.Resource;
 import javax.enterprise.concurrent.ManagedThreadFactory;
 import javax.servlet.AsyncContext;
@@ -28,8 +28,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.ibm.websphere.samples.daytrader.util.Log;
-
 @WebServlet(asyncSupported=true,name = "PingManagedThread", urlPatterns = { "/servlet/PingManagedThread" })
 public class PingManagedThread extends HttpServlet{
 
@@ -37,9 +35,9 @@ public class PingManagedThread extends HttpServlet{
 	private static String initTime;
     private static int hitCount;
 
-	@Resource 
+	@Resource
 	private ManagedThreadFactory managedThreadFactory;
-	
+
 	 /**
      * forwards post requests to the doGet method Creation date: (03/18/2014
      * 10:52:39 AM)
@@ -65,17 +63,17 @@ public class PingManagedThread extends HttpServlet{
      **/
     @Override
 	protected void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-    	
+
 		final AsyncContext asyncContext = req.startAsync();
-		final ServletOutputStream out = res.getOutputStream();	
-		
+		final ServletOutputStream out = res.getOutputStream();
+
 		try {
-			
+
 			res.setContentType("text/html");
-					
+
 			out.println("<html><head><title>Ping ManagedThread</title></head>"
-                    + "<body><HR><BR><FONT size=\"+2\" color=\"#000066\">Ping ManagedThread<BR></FONT><FONT size=\"+1\" color=\"#000066\">Init time : " + initTime + "<BR/><BR/></FONT>");			
-		
+                    + "<body><HR><BR><FONT size=\"+2\" color=\"#000066\">Ping ManagedThread<BR></FONT><FONT size=\"+1\" color=\"#000066\">Init time : " + initTime + "<BR/><BR/></FONT>");
+
 			Thread thread = managedThreadFactory.newThread(new Runnable() {
     			@Override
     			public void run() {
@@ -86,19 +84,19 @@ public class PingManagedThread extends HttpServlet{
 					}
     				asyncContext.complete();
     			}
-    		});   		    		
-			
+    		});
+
 			thread.start();
-		
+
 		} catch (Exception e) {
 			Log.error(e, "PingManagedThreadServlet.doGet(...): general exception caught");
 			res.sendError(500, e.toString());
 		}
-		
+
 	}
-    
-    
-    
+
+
+
     /**
      * returns a string of information about the servlet
      *
@@ -122,5 +120,5 @@ public class PingManagedThread extends HttpServlet{
         hitCount = 0;
 
     }
-	
+
 }

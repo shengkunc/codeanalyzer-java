@@ -15,9 +15,15 @@
  */
 package com.ibm.websphere.samples.daytrader.web.jsf;
 
+import com.ibm.websphere.samples.daytrader.entities.AccountDataBean;
+import com.ibm.websphere.samples.daytrader.entities.AccountProfileDataBean;
+import com.ibm.websphere.samples.daytrader.interfaces.Trace;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
+import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
 import java.io.Serializable;
 import java.math.BigDecimal;
-
 import javax.enterprise.context.SessionScoped;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
@@ -30,14 +36,6 @@ import javax.servlet.http.HttpSession;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 
-import com.ibm.websphere.samples.daytrader.entities.AccountDataBean;
-import com.ibm.websphere.samples.daytrader.entities.AccountProfileDataBean;
-import com.ibm.websphere.samples.daytrader.interfaces.Trace;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
-import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
-
 @Named("tradeapp")
 @SessionScoped
 @Trace
@@ -48,41 +46,41 @@ public class TradeAppJSF implements Serializable {
   private TradeServices tradeAction;
 
   private static final long serialVersionUID = 2L;
-  
+
   @NotBlank
   private String userID = "uid:0";
-  
+
   @NotBlank
   private String password = "xxx";
-  
+
   @NotBlank
   private String cpassword;
-  
+
   @NotBlank
   private String results;
-  
+
   @NotBlank
   private String fullname;
-  
+
   @NotBlank
   private String address;
-  
+
   @Email
   private String email;
-  
+
   @NotBlank
   private String ccn;
-  
+
   @NotBlank
   private String money;
 
-  @Inject 
+  @Inject
   public TradeAppJSF(@Any Instance<TradeServices> services) {
     tradeAction = services.select(new TradeRunTimeModeLiteral(TradeConfig.getRunTimeModeNames()[TradeConfig.getRunTimeMode()])).get();
   }
 
   public String login() {
-    try {        	
+    try {
       AccountDataBean accountData = tradeAction.login(userID, password);
 
       AccountProfileDataBean accountProfileData = tradeAction.getAccountProfileData(userID);

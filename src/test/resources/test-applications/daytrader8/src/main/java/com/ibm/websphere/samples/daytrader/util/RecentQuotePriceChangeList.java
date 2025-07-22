@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 package com.ibm.websphere.samples.daytrader.util;
+import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
+import com.ibm.websphere.samples.daytrader.interfaces.QuotePriceChange;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-
 import javax.annotation.Resource;
 import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.enterprise.context.ApplicationScoped;
@@ -26,9 +27,6 @@ import javax.inject.Inject;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-
-import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
-import com.ibm.websphere.samples.daytrader.interfaces.QuotePriceChange;
 
 
 /** This class is a holds the last 5 stock changes, used by the MarketSummary WebSocket
@@ -59,7 +57,7 @@ public class RecentQuotePriceChangeList  {
       // Add stock, remove if needed
       if(list.size() > maxSize) {
         list.remove(maxSize);
-      }      
+      }
       quotePriceChangeEvent.fireAsync("quotePriceChange for symbol: " + quoteData.getSymbol(), NotificationOptions.builder().setExecutor(mes).build());
     }
     return true;

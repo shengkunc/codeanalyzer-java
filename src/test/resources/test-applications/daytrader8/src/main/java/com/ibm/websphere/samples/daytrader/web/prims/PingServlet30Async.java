@@ -16,7 +16,6 @@
 package com.ibm.websphere.samples.daytrader.web.prims;
 
 import java.io.IOException;
-
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -55,10 +54,10 @@ public class PingServlet30Async extends HttpServlet {
     @Override
     public void doPost(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         res.setContentType("text/html");
-                        
+
         AsyncContext ac = req.startAsync();
         StringBuilder sb = new StringBuilder();
-        
+
         ServletInputStream input = req.getInputStream();
         byte[] b = new byte[1024];
         int len = -1;
@@ -68,14 +67,14 @@ public class PingServlet30Async extends HttpServlet {
         }
 
         ServletOutputStream output = res.getOutputStream();
-        
+
         output.println("<html><head><title>Ping Servlet 3.0 Async</title></head>"
                 + "<body><hr/><br/><font size=\"+2\" color=\"#000066\">Ping Servlet 3.0 Async</font><br/>"
                 + "<font size=\"+1\" color=\"#000066\">Init time : " + initTime
                 + "</font><br/><br/><b>Hit Count: " + ++hitCount + "</b><br/>Data Received: "+ sb.toString() + "</body></html>");
-        
+
         ac.complete();
-    }       
+    }
 
 
     /**
@@ -90,7 +89,7 @@ public class PingServlet30Async extends HttpServlet {
     @Override
     public void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         doPost(req,res);
-          
+
     }
     /**
      * returns a string of information about the servlet

@@ -16,10 +16,8 @@
 package com.ibm.websphere.samples.daytrader.web.prims;
 
 import java.io.IOException;
-
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
-
 import javax.servlet.AsyncContext;
 import javax.servlet.ReadListener;
 import javax.servlet.ServletConfig;
@@ -60,9 +58,9 @@ public class PingServlet31Async extends HttpServlet {
     @Override
     public void doPost(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         res.setContentType("text/html");
-                
+
         AsyncContext ac = req.startAsync();
-           
+
         ServletInputStream input = req.getInputStream();
         ReadListener readListener = new ReadListenerImpl(input, res, ac);
         input.setReadListener(readListener);
@@ -79,32 +77,32 @@ public class PingServlet31Async extends HttpServlet {
             res = r;
             ac = c;
         }
-    
+
         public void onDataAvailable() throws IOException {
             StringBuilder sb = new StringBuilder();
             int len = -1;
             byte b[] = new byte[1024];
-            
+
             while (input.isReady() && (len = input.read(b)) != -1) {
                 String data = new String(b, 0, len);
                 sb.append(data);
             }
             queue.add(sb.toString());
-            
+
         }
-    
+
         public void onAllDataRead() throws IOException {
             ServletOutputStream output = res.getOutputStream();
             WriteListener writeListener = new WriteListenerImpl(output, queue, ac);
             output.setWriteListener(writeListener);
         }
-    
+
         public void onError(final Throwable t) {
             ac.complete();
             t.printStackTrace();
         }
     }
-    
+
     class WriteListenerImpl implements WriteListener {
         private ServletOutputStream output = null;
         private Queue<String> queue = null;
@@ -114,7 +112,7 @@ public class PingServlet31Async extends HttpServlet {
             output = sos;
             queue = q;
             ac = c;
-            
+
             try {
                 output.print("<html><head><title>Ping Servlet 3.1 Async</title></head>"
                         + "<body><hr/><br/><font size=\"+2\" color=\"#000066\">Ping Servlet 3.1 Async</font>"
@@ -127,12 +125,12 @@ public class PingServlet31Async extends HttpServlet {
         }
 
         public void onWritePossible() throws IOException {
-            
+
             while (queue.peek() != null && output.isReady()) {
                 String data = (String) queue.poll();
                 output.print(data);
             }
-            
+
             if (queue.peek() == null) {
                 output.println("</body></html>");
                 ac.complete();
@@ -144,7 +142,7 @@ public class PingServlet31Async extends HttpServlet {
             t.printStackTrace();
         }
     }
-        
+
 
 
     /**
@@ -158,7 +156,7 @@ public class PingServlet31Async extends HttpServlet {
      **/
     @Override
     public void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-        doPost(req,res);          
+        doPost(req,res);
     }
     /**
      * returns a string of information about the servlet

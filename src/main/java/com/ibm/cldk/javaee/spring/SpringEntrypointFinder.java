@@ -6,7 +6,6 @@ import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.ibm.cldk.javaee.utils.interfaces.AbstractEntrypointFinder;
-
 import java.util.List;
 
 public class SpringEntrypointFinder extends AbstractEntrypointFinder {
