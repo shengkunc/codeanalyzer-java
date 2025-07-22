@@ -15,9 +15,13 @@
  */
 package com.ibm.websphere.samples.daytrader.web.prims;
 
+import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
+import com.ibm.websphere.samples.daytrader.impl.direct.TradeDirect;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeJDBC;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.io.IOException;
 import java.math.BigDecimal;
-
 import javax.inject.Inject;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -25,12 +29,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
-import com.ibm.websphere.samples.daytrader.impl.direct.TradeDirect;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeJDBC;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 /**
  *
@@ -48,7 +46,7 @@ public class PingJDBCWrite extends HttpServlet {
   @Inject
   @TradeJDBC
   TradeDirect trade;
-  
+
     private static final long serialVersionUID = -4938035109655376503L;
     private static String initTime;
     private static int hitCount;
@@ -76,7 +74,7 @@ public class PingJDBCWrite extends HttpServlet {
             symbol = TradeConfig.rndSymbol();
             newPrice = TradeConfig.getRandomPriceChangeFactor();
 
-            
+
             // update the price of our symbol
             QuoteDataBean quoteData = null;
             int iter = TradeConfig.getPrimIterations();

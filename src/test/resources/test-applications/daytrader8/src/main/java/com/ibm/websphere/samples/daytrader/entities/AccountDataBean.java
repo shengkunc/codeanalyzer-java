@@ -15,12 +15,13 @@
  */
 package com.ibm.websphere.samples.daytrader.entities;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Date;
-
 import javax.ejb.EJBException;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -39,9 +40,6 @@ import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PastOrPresent;
 import javax.validation.constraints.PositiveOrZero;
-
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 @Entity(name = "accountejb")
 @Table(name = "accountejb")
@@ -271,7 +269,7 @@ public class AccountDataBean implements Serializable {
 
     @Override
     public boolean equals(Object object) {
-        
+
         if (!(object instanceof AccountDataBean)) {
             return false;
         }

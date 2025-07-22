@@ -58,7 +58,7 @@ public class TradeConfig {
   private static int MAX_USERS = 15000;
   private static int MAX_QUOTES = 10000;
 
-  
+
   /* Trade XA Datasource specific parameters */
   public static boolean JDBCDriverNeedsGlobalTransation = false;
 
@@ -510,7 +510,7 @@ public class TradeConfig {
         Log.error("TradeConfig.setConfigParm(..): minor exception caught" + "Setting primIterations, error parsing string to int:" + value
             + "revering to current value: " + primIterations, e);
       } // On error, revert to saved
-    } 
+    }
   }
 
   /**
@@ -748,5 +748,5 @@ public class TradeConfig {
 
   public static int getListQuotePriceChangeFrequency() {
     return  listQuotePriceChangeFrequency;
-  }	
+  }
 }

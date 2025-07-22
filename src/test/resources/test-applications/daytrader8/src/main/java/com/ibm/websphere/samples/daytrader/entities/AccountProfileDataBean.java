@@ -17,6 +17,8 @@ package com.ibm.websphere.samples.daytrader.entities;
 
 //import java.sql.Timestamp;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -26,9 +28,6 @@ import javax.persistence.Table;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 @Entity(name = "accountprofileejb")
 @Table(name = "accountprofileejb")
@@ -169,7 +168,7 @@ public class AccountProfileDataBean implements java.io.Serializable {
 
     @Override
     public boolean equals(Object object) {
-       
+
         if (!(object instanceof AccountProfileDataBean)) {
             return false;
         }

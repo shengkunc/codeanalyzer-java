@@ -1,13 +1,5 @@
 package com.ibm.cldk;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
 import com.github.javaparser.*;
 import com.github.javaparser.ast.*;
 import com.github.javaparser.ast.body.*;
@@ -15,17 +7,13 @@ import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.comments.JavadocComment;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.nodeTypes.NodeWithJavadoc;
-import com.github.javaparser.ast.stmt.*;
-import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
-import com.github.javaparser.resolution.declarations.ResolvedMethodLikeDeclaration;
-import com.ibm.cldk.entities.*;
-import com.ibm.cldk.javaee.EntrypointsFinderFactory;
-import org.apache.commons.lang3.tuple.Pair;
-
 import com.github.javaparser.ast.nodeTypes.NodeWithName;
+import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.type.ReferenceType;
 import com.github.javaparser.ast.type.Type;
+import com.github.javaparser.printer.lexicalpreservation.LexicalPreservingPrinter;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
+import com.github.javaparser.resolution.declarations.ResolvedMethodLikeDeclaration;
 import com.github.javaparser.resolution.types.ResolvedType;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
@@ -35,10 +23,20 @@ import com.github.javaparser.utils.ProjectRoot;
 import com.github.javaparser.utils.SourceRoot;
 import com.google.common.collect.Table;
 import com.google.common.collect.Tables;
+import com.ibm.cldk.entities.*;
 import com.ibm.cldk.javaee.CRUDFinderFactory;
+import com.ibm.cldk.javaee.EntrypointsFinderFactory;
 import com.ibm.cldk.javaee.utils.enums.CRUDOperationType;
 import com.ibm.cldk.javaee.utils.enums.CRUDQueryType;
 import com.ibm.cldk.utils.Log;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.apache.commons.lang3.tuple.Pair;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class SymbolTable {

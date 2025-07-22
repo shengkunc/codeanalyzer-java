@@ -1,11 +1,10 @@
 package com.ibm.cldk.entities;
 
-import lombok.Data;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.Data;
 
 /**
  * Represents a type in the system with various characteristics.

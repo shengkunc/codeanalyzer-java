@@ -1,9 +1,8 @@
 package com.ibm.cldk.javaee.utils.enums;
 
 import com.ibm.cldk.utils.annotations.Note;
-import lombok.Getter;
-
 import java.util.Optional;
+import lombok.Getter;
 
 @Getter
 public enum JPAQueryMethod {

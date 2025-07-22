@@ -15,14 +15,12 @@
  */
 package com.ibm.websphere.samples.daytrader.web.jsf;
 
+import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
-
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Named;
-
-import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
 
 @Named
 @RequestScoped

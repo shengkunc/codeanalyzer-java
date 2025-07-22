@@ -28,6 +28,6 @@ import javax.inject.Qualifier;
 public @interface RuntimeMode {
   /**
   * Default to jaxrs client impl
-  */  
+  */
   String value() default "Full EJB3";
 }

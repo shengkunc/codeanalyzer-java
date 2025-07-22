@@ -15,9 +15,9 @@
  */
 package com.ibm.websphere.samples.daytrader.web.prims;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
 import java.io.IOException;
 import java.io.StringReader;
-
 import javax.json.Json;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
@@ -31,11 +31,9 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.ibm.websphere.samples.daytrader.util.Log;
-
 /**
  *
- * PingJSONP tests JSON generating and parsing 
+ * PingJSONP tests JSON generating and parsing
  *
  */
 @WebServlet(name = "PingJSONPObjectFactory", urlPatterns = { "/servlet/PingJSONPObjectFactory" })
@@ -44,7 +42,7 @@ public class PingJSONPObjectFactory extends HttpServlet {
   private static final JsonBuilderFactory jSONObjectFactory = Json.createBuilderFactory(null);
   private static final JsonReaderFactory jSONReaderFactory = Json.createReaderFactory(null);
   /**
-   * 
+   *
    */
   private static final long serialVersionUID = -5348806619121122708L;
   private static String initTime;
@@ -90,7 +88,7 @@ public class PingJSONPObjectFactory extends HttpServlet {
 
       // Read back
       JsonReader jsonReader = jSONReaderFactory.createReader(new StringReader(generatedJSON));
-      String parsedJSON = jsonReader.readObject().toString();        
+      String parsedJSON = jsonReader.readObject().toString();
 
 
       out.println("<html><head><title>Ping JSONP</title></head>"

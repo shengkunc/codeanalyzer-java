@@ -1,9 +1,8 @@
 package com.ibm.cldk.entities;
 
-import org.jgrapht.nio.Attribute;
-
 import java.io.Serializable;
 import java.util.Map;
+import org.jgrapht.nio.Attribute;
 
 
 public abstract class AbstractGraphVertex implements Serializable {

@@ -15,8 +15,9 @@
  */
 package com.ibm.websphere.samples.daytrader.jaxrs;
 
+import com.ibm.websphere.samples.daytrader.interfaces.QuotePriceChange;
+import com.ibm.websphere.samples.daytrader.util.RecentQuotePriceChangeList;
 import java.util.List;
-
 import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.ObservesAsync;
@@ -32,15 +33,12 @@ import javax.ws.rs.sse.Sse;
 import javax.ws.rs.sse.SseBroadcaster;
 import javax.ws.rs.sse.SseEventSink;
 
-import com.ibm.websphere.samples.daytrader.interfaces.QuotePriceChange;
-import com.ibm.websphere.samples.daytrader.util.RecentQuotePriceChangeList;
-
 @Path("broadcastevents")
 @ApplicationScoped
 public class BroadcastResource {
 
   private SseBroadcaster broadcaster;
-  private Builder builder; 
+  private Builder builder;
 
   @Inject RecentQuotePriceChangeList recentQuotePriceChangeList;
 

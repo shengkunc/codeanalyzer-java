@@ -18,7 +18,6 @@ package com.ibm.websphere.samples.daytrader.web.prims;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
 import javax.websocket.CloseReason;
 import javax.websocket.EndpointConfig;
 import javax.websocket.OnClose;
@@ -34,14 +33,14 @@ import javax.websocket.server.ServerEndpoint;
 public class PingWebSocketBinary {
 
     private Session currentSession = null;
-   
+
     @OnOpen
     public void onOpen(final Session session, EndpointConfig ec) {
         currentSession = session;
     }
 
     @OnMessage
-    public void ping(ByteBuffer data) {       
+    public void ping(ByteBuffer data) {
         currentSession.getAsyncRemote().sendBinary(data);
     }
 

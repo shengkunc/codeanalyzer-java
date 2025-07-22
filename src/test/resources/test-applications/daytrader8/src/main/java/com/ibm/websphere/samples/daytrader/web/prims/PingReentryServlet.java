@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
@@ -33,7 +32,7 @@ import javax.servlet.http.HttpServletResponse;
 public class PingReentryServlet extends HttpServlet {
 
     private static final long serialVersionUID = -2536027021580175706L;
-    
+
     @Override
     public void doPost(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         doGet(req, res);
@@ -59,21 +58,21 @@ public class PingReentryServlet extends HttpServlet {
             // stream.
             ServletOutputStream out = res.getOutputStream();
             // java.io.PrintWriter out = res.getWriter();
-            int numReentriesLeft; 
+            int numReentriesLeft;
             int sleepTime;
-            
+
             if(req.getParameter("numReentries") != null){
                 numReentriesLeft = Integer.parseInt(req.getParameter("numReentries"));
             } else {
                 numReentriesLeft = 0;
             }
-            
+
             if(req.getParameter("sleep") != null){
                 sleepTime = Integer.parseInt(req.getParameter("sleep"));
             } else {
                 sleepTime = 0;
             }
-                
+
             if(numReentriesLeft <= 0) {
                 Thread.sleep(sleepTime);
                 out.println(numReentriesLeft);
@@ -83,27 +82,27 @@ public class PingReentryServlet extends HttpServlet {
                 req.getContextPath();
                 int saveNumReentriesLeft = numReentriesLeft;
                 int nextNumReentriesLeft = numReentriesLeft - 1;
-                
+
                 // Recursively call into the same server, decrementing the counter by 1.
-                String url = "http://" +  hostname + ":" + port + "/" + req.getRequestURI() + 
+                String url = "http://" +  hostname + ":" + port + "/" + req.getRequestURI() +
                         "?numReentries=" +  nextNumReentriesLeft +
                         "&sleep=" + sleepTime;
                 URL obj = new URL(url);
                 HttpURLConnection con = (HttpURLConnection) obj.openConnection();
                 con.setRequestMethod("GET");
                 con.setRequestProperty("User-Agent", "Mozilla/5.0");
-                
+
                 //Append the recursion count to the response and return it.
                 BufferedReader in = new BufferedReader(
                         new InputStreamReader(con.getInputStream()));
                 String inputLine;
                 StringBuffer response = new StringBuffer();
-         
+
                 while ((inputLine = in.readLine()) != null) {
                     response.append(inputLine);
                 }
                 in.close();
-                
+
                 Thread.sleep(sleepTime);
                 out.println(saveNumReentriesLeft + response.toString());
             }

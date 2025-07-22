@@ -1,10 +1,9 @@
 package com.ibm.cldk.entities;
 
-import lombok.Data;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import lombok.Data;
 
 /**
  * Represents a call site within source code, encapsulating information about method invocations

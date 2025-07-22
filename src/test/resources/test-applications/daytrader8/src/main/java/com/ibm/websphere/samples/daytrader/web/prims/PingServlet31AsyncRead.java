@@ -12,11 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */  
+ */
 package com.ibm.websphere.samples.daytrader.web.prims;
 
 import java.io.IOException;
-
 import javax.servlet.AsyncContext;
 import javax.servlet.ReadListener;
 import javax.servlet.ServletConfig;
@@ -56,9 +55,9 @@ public class PingServlet31AsyncRead extends HttpServlet {
     @Override
     public void doPost(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
         res.setContentType("text/html");
-                
+
         AsyncContext ac = req.startAsync();
-           
+
         ServletInputStream input = req.getInputStream();
         ReadListener readListener = new ReadListenerImpl(input, res, ac);
         input.setReadListener(readListener);
@@ -75,20 +74,20 @@ public class PingServlet31AsyncRead extends HttpServlet {
             res = r;
             ac = c;
         }
-    
+
         public void onDataAvailable() throws IOException {
-            
+
             int len = -1;
             byte b[] = new byte[1024];
-            
+
             while (input.isReady() && (len = input.read(b)) != -1) {
                 String data = new String(b, 0, len);
                 sb.append(data);
             }
-            
-            
+
+
         }
-    
+
         public void onAllDataRead() throws IOException {
             ServletOutputStream output = res.getOutputStream();
             output.println("<html><head><title>Ping Servlet 3.1 Async</title></head>"
@@ -97,13 +96,13 @@ public class PingServlet31AsyncRead extends HttpServlet {
                     + "</font><br/><br/><b>Hit Count: " + ++hitCount + "</b><br/>Data Received: " + sb.toString() + "</body></html>");
             ac.complete();
         }
-    
+
         public void onError(final Throwable t) {
             ac.complete();
             t.printStackTrace();
         }
     }
-        
+
 
 
     /**
@@ -117,7 +116,7 @@ public class PingServlet31AsyncRead extends HttpServlet {
      **/
     @Override
     public void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-        doPost(req,res);          
+        doPost(req,res);
     }
     /**
      * returns a string of information about the servlet

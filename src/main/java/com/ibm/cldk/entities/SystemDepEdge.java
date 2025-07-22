@@ -14,12 +14,11 @@ limitations under the License.
 package com.ibm.cldk.entities;
 
 import com.ibm.wala.ipa.slicer.Statement;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.jgrapht.nio.Attribute;
 import org.jgrapht.nio.DefaultAttribute;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * The type System dep edge.

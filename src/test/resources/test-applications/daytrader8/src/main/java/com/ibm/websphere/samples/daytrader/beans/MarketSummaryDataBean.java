@@ -15,21 +15,19 @@
  */
 package com.ibm.websphere.samples.daytrader.beans;
 
+import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
+import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
-
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-
-import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
-import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 public class MarketSummaryDataBean implements Serializable {
 
@@ -128,9 +126,9 @@ public class MarketSummaryDataBean implements Serializable {
     }
 
     public JsonObject toJSON() {
-        
+
         JsonObjectBuilder jObjectBuilder = Json.createObjectBuilder();
-        
+
         int i = 1;
         for (Iterator<QuoteDataBean> iterator = topGainers.iterator(); iterator.hasNext();) {
             QuoteDataBean quote = iterator.next();
@@ -156,7 +154,7 @@ public class MarketSummaryDataBean implements Serializable {
         jObjectBuilder.add("date", summaryDate.toString());
 
         return jObjectBuilder.build();
-        
+
     }
 
     public void print() {

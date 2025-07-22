@@ -24,19 +24,16 @@ import com.ibm.wala.ipa.callgraph.Entrypoint;
 import com.ibm.wala.ipa.callgraph.impl.DefaultEntrypoint;
 import com.ibm.wala.ipa.cha.IClassHierarchy;
 import com.ibm.wala.ssa.IR;
+import com.ibm.wala.ssa.ISSABasicBlock;
 import com.ibm.wala.ssa.SSAConditionalBranchInstruction;
+import com.ibm.wala.ssa.SSASwitchInstruction;
 import com.ibm.wala.types.ClassLoaderReference;
-
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.Type;
-
-import com.ibm.wala.ssa.ISSABasicBlock;
-import com.ibm.wala.ssa.SSASwitchInstruction;
 
 /**
  * The type Analysis utils.

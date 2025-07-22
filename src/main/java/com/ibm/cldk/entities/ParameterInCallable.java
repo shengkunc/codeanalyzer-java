@@ -1,8 +1,7 @@
 package com.ibm.cldk.entities;
 
-import lombok.Data;
-
 import java.util.List;
+import lombok.Data;
 
 /**
  * Represents a parameter in a callable entity (e.g., method or constructor).

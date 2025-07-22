@@ -16,7 +16,6 @@
 package com.ibm.websphere.samples.daytrader.web.websocket;
 
 import java.io.StringReader;
-
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.websocket.DecodeException;
@@ -36,11 +35,11 @@ public class JsonDecoder implements Decoder.Text<JsonMessage> {
     @Override
     public JsonMessage decode(String json) throws DecodeException {
         JsonObject jsonObject = Json.createReader(new StringReader(json)).readObject();
-        
+
         JsonMessage message = new JsonMessage();
         message.setKey(jsonObject.getString("key"));
         message.setValue(jsonObject.getString("value"));
-        
+
         return message;
     }
 

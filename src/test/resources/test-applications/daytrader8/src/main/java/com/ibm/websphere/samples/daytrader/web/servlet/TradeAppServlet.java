@@ -15,8 +15,10 @@
  */
 package com.ibm.websphere.samples.daytrader.web.servlet;
 
+import com.ibm.websphere.samples.daytrader.interfaces.Trace;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.io.IOException;
-
 import javax.inject.Inject;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -27,10 +29,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.PushBuilder;
-
-import com.ibm.websphere.samples.daytrader.interfaces.Trace;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 
 /**
@@ -46,8 +44,8 @@ import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 public class TradeAppServlet extends HttpServlet {
 
   @Inject
-  TradeServletAction tsAction; 
-  
+  TradeServletAction tsAction;
+
   private static final long serialVersionUID = 481530522846648373L;
 
   /**
@@ -159,13 +157,13 @@ public class TradeAppServlet extends HttpServlet {
       tsAction.doWelcome(ctx, req, resp, "User Not Logged in");
       return;
     }
-    
+
     // try http/2 push if we get here
     // should be logged in and doing real work by this point
     if (!action.equals("logout") && TradeConfig.getWebInterface() == TradeConfig.JSP_Images_HTTP2) {
       pushHeaderImages(req.newPushBuilder());
     }
-    
+
     if (action.equals("quotes")) {
       String symbols = req.getParameter("symbols");
       tsAction.doQuotes(ctx, req, resp, userID, symbols);
@@ -184,7 +182,7 @@ public class TradeAppServlet extends HttpServlet {
       tsAction.doHome(ctx, req, resp, userID, "Ready to Trade");
     } else if (action.equals("account")) {
       tsAction.doAccount(ctx, req, resp, userID, "");
-    } else if (action.equals("update_profile")) {      
+    } else if (action.equals("update_profile")) {
       String password = req.getParameter("password");
       String cpassword = req.getParameter("cpassword");
       String fullName = req.getParameter("fullname");
@@ -202,7 +200,7 @@ public class TradeAppServlet extends HttpServlet {
     }
   }
 
-  private void pushHeaderImages(PushBuilder pushBuilder) {       
+  private void pushHeaderImages(PushBuilder pushBuilder) {
     if (pushBuilder != null) {
       pushBuilder.path("images/menuHome.gif").addHeader("content-type", "image/gif").push();
       pushBuilder.path("images/account.gif").addHeader("content-type", "image/gif").push();
@@ -215,7 +213,7 @@ public class TradeAppServlet extends HttpServlet {
     } else {
       Log.error("HTTP/2 not enabled");
     }
-    
+
   }
 
 }

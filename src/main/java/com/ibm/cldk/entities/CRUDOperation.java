@@ -2,10 +2,10 @@ package com.ibm.cldk.entities;
 
 import com.ibm.cldk.javaee.utils.enums.CRUDOperationType;
 import com.ibm.cldk.utils.annotations.NotImplemented;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.util.List;
 
 @Data
 @NoArgsConstructor

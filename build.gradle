@@ -17,6 +17,7 @@ plugins {
     id 'application'
     id 'org.graalvm.buildtools.native' version '0.10.4'
     id 'org.jetbrains.kotlin.jvm'
+    id 'com.diffplug.spotless' version '6.25.0'
 }
 
 // Get the version from the property file first
@@ -144,6 +145,20 @@ test {
     // Optional: Enable TestContainers reuse to speed up tests
     systemProperty 'testcontainers.reuse.enable', 'true'
 }
+
+spotless {
+    java {
+        target 'src/**/*.java'
+        trimTrailingWhitespace()
+        endWithNewline()
+        importOrder()
+    }
+}
+
+compileJava.dependsOn spotlessApply
+
+// Optionally, automatically format before compilation
+// compileJava.dependsOn googleJavaFormat
 
 task fatJar(type: Jar) {
     archiveBaseName = 'codeanalyzer'

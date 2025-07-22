@@ -29,7 +29,7 @@ public class PingEJBLocal implements PingEJBIFace {
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see com.ibm.websphere.samples.daytrader.web.prims.EJBIFace#getMsg()
    */
   @Override

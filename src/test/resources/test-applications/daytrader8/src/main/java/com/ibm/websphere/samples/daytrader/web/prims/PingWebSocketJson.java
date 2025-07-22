@@ -16,8 +16,10 @@
 
 package com.ibm.websphere.samples.daytrader.web.prims;
 
+import com.ibm.websphere.samples.daytrader.web.websocket.JsonDecoder;
+import com.ibm.websphere.samples.daytrader.web.websocket.JsonEncoder;
+import com.ibm.websphere.samples.daytrader.web.websocket.JsonMessage;
 import java.io.IOException;
-
 import javax.enterprise.concurrent.ManagedThreadFactory;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -30,10 +32,6 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
-import com.ibm.websphere.samples.daytrader.web.websocket.JsonDecoder;
-import com.ibm.websphere.samples.daytrader.web.websocket.JsonEncoder;
-import com.ibm.websphere.samples.daytrader.web.websocket.JsonMessage;
-
 /** This class a simple websocket that sends the number of times it has been pinged. */
 
 @ServerEndpoint(value = "/pingWebSocketJson",encoders=JsonEncoder.class ,decoders=JsonDecoder.class)
@@ -42,38 +40,38 @@ public class PingWebSocketJson {
     private Session currentSession = null;
     private Integer sentHitCount = null;
     private Integer receivedHitCount = null;
-       
+
     @OnOpen
     public void onOpen(final Session session, EndpointConfig ec) {
         currentSession = session;
         sentHitCount = 0;
         receivedHitCount = 0;
-        
-        
+
+
         InitialContext context;
         ManagedThreadFactory mtf = null;
-        
+
         try {
             context = new InitialContext();
             mtf = (ManagedThreadFactory) context.lookup("java:comp/DefaultManagedThreadFactory");
-        
+
         } catch (NamingException e1) {
             // TODO Auto-generated catch block
             e1.printStackTrace();
         }
-        
+
         Thread thread = mtf.newThread(new Runnable() {
 
             @Override
             public void run() {
-                
+
                 try {
-                
+
                     Thread.sleep(500);
-                    
+
                     while (currentSession.isOpen()) {
                         sentHitCount++;
-                    
+
                         JsonMessage response = new JsonMessage();
                         response.setKey("sentHitCount");
                         response.setValue(sentHitCount.toString());
@@ -81,17 +79,17 @@ public class PingWebSocketJson {
 
                         Thread.sleep(100);
                     }
-                    
-                           
+
+
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
-                
+
         });
-        
+
         thread.start();
-        
+
     }
 
     @OnMessage
@@ -110,7 +108,7 @@ public class PingWebSocketJson {
 
     @OnClose
     public void onClose(Session session, CloseReason reason) {
-       
+
     }
 
 }

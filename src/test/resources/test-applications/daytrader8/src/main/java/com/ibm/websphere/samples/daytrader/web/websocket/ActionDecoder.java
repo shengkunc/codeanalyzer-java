@@ -15,13 +15,12 @@
  */
 package com.ibm.websphere.samples.daytrader.web.websocket;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
 import javax.websocket.DecodeException;
 import javax.websocket.Decoder;
 import javax.websocket.EndpointConfig;
 
-import com.ibm.websphere.samples.daytrader.util.Log;
-
-// This is coded to be a Text type decoder expecting JSON format. 
+// This is coded to be a Text type decoder expecting JSON format.
 // It will decode incoming messages into object of type String
 public class ActionDecoder implements Decoder.Text<ActionMessage> {
 

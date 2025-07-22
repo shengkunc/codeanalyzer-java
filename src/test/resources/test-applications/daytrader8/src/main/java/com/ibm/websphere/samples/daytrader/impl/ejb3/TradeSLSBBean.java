@@ -15,6 +15,20 @@
  */
 package com.ibm.websphere.samples.daytrader.impl.ejb3;
 
+import com.ibm.websphere.samples.daytrader.beans.MarketSummaryDataBean;
+import com.ibm.websphere.samples.daytrader.entities.AccountDataBean;
+import com.ibm.websphere.samples.daytrader.entities.AccountProfileDataBean;
+import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
+import com.ibm.websphere.samples.daytrader.entities.OrderDataBean;
+import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
+import com.ibm.websphere.samples.daytrader.interfaces.RuntimeMode;
+import com.ibm.websphere.samples.daytrader.interfaces.Trace;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeEJB;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.RecentQuotePriceChangeList;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Collection;
@@ -22,7 +36,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Future;
-
 import javax.annotation.Resource;
 import javax.ejb.EJB;
 import javax.ejb.EJBException;
@@ -47,21 +60,6 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 import javax.transaction.RollbackException;
 import javax.validation.constraints.NotNull;
-
-import com.ibm.websphere.samples.daytrader.interfaces.RuntimeMode;
-import com.ibm.websphere.samples.daytrader.interfaces.Trace;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeEJB;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.beans.MarketSummaryDataBean;
-import com.ibm.websphere.samples.daytrader.entities.AccountDataBean;
-import com.ibm.websphere.samples.daytrader.entities.AccountProfileDataBean;
-import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
-import com.ibm.websphere.samples.daytrader.entities.OrderDataBean;
-import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
-import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.RecentQuotePriceChangeList;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 @Stateless
 @TradeEJB
@@ -97,7 +95,7 @@ public class TradeSLSBBean implements TradeServices {
     @EJB
     MarketSummarySingleton marketSummarySingleton;
 
-    @Inject 
+    @Inject
     AsyncScheduledOrderSubmitter asyncEJBOrderSubmitter;
 
     @Inject
@@ -122,7 +120,7 @@ public class TradeSLSBBean implements TradeServices {
             // this buy order
 
             order = createOrder(account, quote, holding, "buy", quantity);
- 
+
             // UPDATE - account should be credited during completeOrder
             BigDecimal price = quote.getPrice();
             BigDecimal orderFee = order.getOrderFee();
@@ -185,7 +183,7 @@ public class TradeSLSBBean implements TradeServices {
             BigDecimal balance = account.getBalance();
             total = (new BigDecimal(quantity).multiply(price)).subtract(orderFee);
             account.setBalance(balance.add(total));
-            final Integer orderID=order.getOrderID(); 
+            final Integer orderID=order.getOrderID();
 
             if (orderProcessingMode == TradeConfig.SYNCH) {
                 completeOrder(orderID, false);
@@ -273,7 +271,7 @@ public class TradeSLSBBean implements TradeServices {
                 order.setCompletionDate(new java.sql.Timestamp(System.currentTimeMillis()));
                 updateQuotePriceVolume(quote.getSymbol(), TradeConfig.getRandomPriceChangeFactor(), quantity);
             }
-        } 
+        }
 
         Log.trace("TradeSLSBBean:completeOrder--> Completed Order " + order.getOrderID() + "\n\t Order info: " + order + "\n\t Account info: " + account
             + "\n\t Quote info: " + quote + "\n\t Holding info: " + holding);
@@ -315,9 +313,9 @@ public class TradeSLSBBean implements TradeServices {
             Root<OrderDataBean> orders = criteriaQuery.from(OrderDataBean.class);
             criteriaQuery.select(orders);
             criteriaQuery.where(
-                    criteriaBuilder.equal(orders.get("orderStatus"), 
-                            criteriaBuilder.parameter(String.class, "p_status")), 
-                    criteriaBuilder.equal(orders.get("account").get("profile").get("userID"), 
+                    criteriaBuilder.equal(orders.get("orderStatus"),
+                            criteriaBuilder.parameter(String.class, "p_status")),
+                    criteriaBuilder.equal(orders.get("account").get("profile").get("userID"),
                             criteriaBuilder.parameter(String.class, "p_userid")));
 
             TypedQuery<OrderDataBean> q = entityManager.createQuery(criteriaQuery);
@@ -332,7 +330,7 @@ public class TradeSLSBBean implements TradeServices {
                 // TODO: Investigate ConncurrentModification Exceptions
                 if (TradeConfig.getLongRun()) {
                     //Added this for Longruns (to prevent orderejb growth)
-                    entityManager.remove(order); 
+                    entityManager.remove(order);
                 }
                 else {
                     order.setOrderStatus("completed");
@@ -415,7 +413,7 @@ public class TradeSLSBBean implements TradeServices {
         CriteriaQuery<HoldingDataBean> criteriaQuery = criteriaBuilder.createQuery(HoldingDataBean.class);
         Root<HoldingDataBean> holdings = criteriaQuery.from(HoldingDataBean.class);
         criteriaQuery.where(
-                criteriaBuilder.equal(holdings.get("account").get("profile").get("userID"), 
+                criteriaBuilder.equal(holdings.get("account").get("profile").get("userID"),
                         criteriaBuilder.parameter(String.class, "p_userid")));
         criteriaQuery.select(holdings);
 
@@ -571,7 +569,7 @@ public class TradeSLSBBean implements TradeServices {
         try (JMSContext queueContext = queueConnectionFactory.createContext();) {
             // Get a Quote and send a JMS message in a 2-phase commit
             quoteData = entityManager.find(QuoteDataBean.class, symbol);
-            
+
             double sharesTraded = (Math.random() * 100) + 1 ;
             BigDecimal oldPrice = quoteData.getPrice();
             BigDecimal openPrice = quoteData.getOpen();

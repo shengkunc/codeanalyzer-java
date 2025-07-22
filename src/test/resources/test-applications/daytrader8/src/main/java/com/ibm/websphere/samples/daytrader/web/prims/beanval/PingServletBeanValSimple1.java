@@ -15,9 +15,9 @@
  */
 package com.ibm.websphere.samples.daytrader.web.prims.beanval;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
 import java.io.IOException;
 import java.time.LocalDateTime;
-
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
@@ -25,8 +25,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import com.ibm.websphere.samples.daytrader.util.Log;
 
 @WebServlet(name = "PingServletBeanValSimple1", urlPatterns = { "/servlet/PingServletBeanValSimple1" })
 public class PingServletBeanValSimple1  extends HttpServlet {
@@ -61,7 +59,7 @@ public class PingServletBeanValSimple1  extends HttpServlet {
    **/
   @Override
   public void doGet(HttpServletRequest req, HttpServletResponse res) throws ServletException, IOException {
-    try {            
+    try {
       res.setContentType("text/html");
 
       SimpleBean1 simpleBean1 = new SimpleBean1();

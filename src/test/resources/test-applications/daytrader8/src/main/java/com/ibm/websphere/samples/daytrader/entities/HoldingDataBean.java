@@ -15,10 +15,11 @@
  */
 package com.ibm.websphere.samples.daytrader.entities;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -35,9 +36,6 @@ import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PastOrPresent;
 import javax.validation.constraints.Positive;
-
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 @Entity(name = "holdingejb")
 @Table(name = "holdingejb")
@@ -189,7 +187,7 @@ public class HoldingDataBean implements Serializable {
 
     @Override
     public boolean equals(Object object) {
-        
+
         if (!(object instanceof HoldingDataBean)) {
             return false;
         }

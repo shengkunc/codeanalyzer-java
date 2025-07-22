@@ -4,9 +4,6 @@ import com.ibm.cldk.entities.CallSite;
 import com.ibm.cldk.entities.Callable;
 import com.ibm.cldk.entities.JavaCompilationUnit;
 import com.ibm.cldk.entities.Type;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +12,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class SymbolTableTest {
 

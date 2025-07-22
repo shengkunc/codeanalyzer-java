@@ -15,13 +15,22 @@
  */
 package com.ibm.websphere.samples.daytrader.web.servlet;
 
+import com.ibm.websphere.samples.daytrader.entities.AccountDataBean;
+import com.ibm.websphere.samples.daytrader.entities.AccountProfileDataBean;
+import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
+import com.ibm.websphere.samples.daytrader.entities.OrderDataBean;
+import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
+import com.ibm.websphere.samples.daytrader.interfaces.Trace;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
+import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
 import java.io.IOException;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-
 import javax.enterprise.context.SessionScoped;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
@@ -31,17 +40,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-
-import com.ibm.websphere.samples.daytrader.interfaces.Trace;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.entities.AccountDataBean;
-import com.ibm.websphere.samples.daytrader.entities.AccountProfileDataBean;
-import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
-import com.ibm.websphere.samples.daytrader.entities.OrderDataBean;
-import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
-import com.ibm.websphere.samples.daytrader.util.TradeRunTimeModeLiteral;
 
 
 /**
@@ -59,9 +57,9 @@ public class TradeServletAction implements Serializable {
 
   private static final long serialVersionUID = 7732313125198761455L;
 
-  private TradeServices tAction;  
+  private TradeServices tAction;
 
-  @Inject 
+  @Inject
   public TradeServletAction(@Any Instance<TradeServices> services) {
     tAction = services.select(new TradeRunTimeModeLiteral(TradeConfig.getRunTimeModeNames()[TradeConfig.getRunTimeMode()])).get();
   }
@@ -515,14 +513,14 @@ public class TradeServletAction implements Serializable {
       for (String symbol: symbolsSplit) {
         QuoteDataBean quoteData = tAction.getQuote(symbol.trim());
         quoteDataBeans.add(quoteData);
-      } 
+      }
       req.setAttribute("quoteDataBeans", quoteDataBeans);
       requestDispatch(ctx, req, resp, userID, TradeConfig.getPage(TradeConfig.QUOTE_PAGE));
 
     } catch (Exception e) {
       // log the exception with error page
       throw new ServletException("TradeServletAction.doQuotes(...)" + " exception user =" + userID, e);
-    } 
+    }
   }
 
   /**

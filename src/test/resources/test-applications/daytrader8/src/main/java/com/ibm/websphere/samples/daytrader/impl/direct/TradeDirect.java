@@ -15,6 +15,22 @@
  */
 package com.ibm.websphere.samples.daytrader.impl.direct;
 
+import com.ibm.websphere.samples.daytrader.beans.MarketSummaryDataBean;
+import com.ibm.websphere.samples.daytrader.entities.AccountDataBean;
+import com.ibm.websphere.samples.daytrader.entities.AccountProfileDataBean;
+import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
+import com.ibm.websphere.samples.daytrader.entities.OrderDataBean;
+import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
+import com.ibm.websphere.samples.daytrader.interfaces.MarketSummaryUpdate;
+import com.ibm.websphere.samples.daytrader.interfaces.RuntimeMode;
+import com.ibm.websphere.samples.daytrader.interfaces.Trace;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeJDBC;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.MDBStats;
+import com.ibm.websphere.samples.daytrader.util.RecentQuotePriceChangeList;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -26,7 +42,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.Future;
-
 import javax.annotation.Resource;
 import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.enterprise.context.Dependent;
@@ -43,23 +58,6 @@ import javax.jms.TopicConnectionFactory;
 import javax.sql.DataSource;
 import javax.transaction.UserTransaction;
 import javax.validation.constraints.NotNull;
-
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.beans.MarketSummaryDataBean;
-import com.ibm.websphere.samples.daytrader.entities.AccountDataBean;
-import com.ibm.websphere.samples.daytrader.entities.AccountProfileDataBean;
-import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
-import com.ibm.websphere.samples.daytrader.entities.OrderDataBean;
-import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
-import com.ibm.websphere.samples.daytrader.util.FinancialUtils;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.MDBStats;
-import com.ibm.websphere.samples.daytrader.util.RecentQuotePriceChangeList;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
-import com.ibm.websphere.samples.daytrader.interfaces.MarketSummaryUpdate;
-import com.ibm.websphere.samples.daytrader.interfaces.RuntimeMode;
-import com.ibm.websphere.samples.daytrader.interfaces.Trace;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeJDBC;
 
 /**
  * TradeDirect uses direct JDBC and JMS access to a
@@ -84,7 +82,7 @@ import com.ibm.websphere.samples.daytrader.interfaces.TradeJDBC;
 @Trace
 public class TradeDirect implements TradeServices, Serializable {
   /**
-   * 
+   *
    */
   private static final long serialVersionUID = -8089049090952927985L;
 
@@ -124,17 +122,17 @@ public class TradeDirect implements TradeServices, Serializable {
 
   @Inject
   RecentQuotePriceChangeList recentQuotePriceChangeList;
-  
-  @Inject 
-  AsyncOrderSubmitter asyncOrderSubmitter;  
-  
+
+  @Inject
+  AsyncOrderSubmitter asyncOrderSubmitter;
+
   @Inject
   @MarketSummaryUpdate
   Event<String> mkSummaryUpdateEvent;
-  
+
   @Resource
   private ManagedExecutorService mes;
-  
+
 
   @Override
   public MarketSummaryDataBean getMarketSummary() throws Exception {
@@ -185,7 +183,7 @@ public class TradeDirect implements TradeServices, Serializable {
        */
       if (fetch) {
         cachedMSDB = getMarketSummaryInternal();
-  
+
       }
     }
 
@@ -342,7 +340,7 @@ public class TradeDirect implements TradeServices, Serializable {
           completeOrderAsync(orderID, true);
         } else  if (orderProcessingMode == TradeConfig.ASYNCH_2PHASE) {
           queueOrder(orderID, true); // 2-phase
-        } 
+        }
       } catch (JMSException je) {
         Log.error("TradeBean:buy(" + userID + "," + symbol + "," + quantity + ") --> failed to queueOrder", je);
 
@@ -353,9 +351,9 @@ public class TradeDirect implements TradeServices, Serializable {
       orderData = getOrderData(conn, orderData.getOrderID().intValue());
 
       if (getInGlobalTxn()) {
-        
+
         Log.trace("TradeDirect:buy committing global transaction");
-        
+
         if (!inSession && orderProcessingMode == TradeConfig.ASYNCH_2PHASE) {
           txn.commit();
           setInGlobalTxn(false);
@@ -393,14 +391,14 @@ public class TradeDirect implements TradeServices, Serializable {
     BigDecimal total;
 
     try {
-     
+
       Log.trace("TradeDirect:sell - inSession(" + this.inSession + ")", userID, holdingID);
-      
+
 
       if (!inSession && orderProcessingMode == TradeConfig.ASYNCH_2PHASE) {
-       
+
         Log.trace("TradeDirect:sell create/begin global transaction");
-        
+
         txn.begin();
         setInGlobalTxn(true);
       }
@@ -449,7 +447,7 @@ public class TradeDirect implements TradeServices, Serializable {
           this.completeOrderAsync(orderData.getOrderID(), true);
         } else if (orderProcessingMode == TradeConfig.ASYNCH_2PHASE) {
           queueOrder(orderData.getOrderID(), true);
-        } 
+        }
       } catch (JMSException je) {
         Log.error("TradeBean:sell(" + userID + "," + holdingID + ") --> failed to queueOrder", je);
 
@@ -459,9 +457,9 @@ public class TradeDirect implements TradeServices, Serializable {
       orderData = getOrderData(conn, orderData.getOrderID().intValue());
 
       if (!inSession && orderProcessingMode == TradeConfig.ASYNCH_2PHASE) {
-       
+
         Log.trace("TradeDirect:sell committing global transaction");
-        
+
         txn.commit();
         setInGlobalTxn(false);
       } else {
@@ -487,11 +485,11 @@ public class TradeDirect implements TradeServices, Serializable {
   @Override
   public void queueOrder(Integer orderID, boolean twoPhase) throws Exception {
 
-   
-    Log.trace("TradeDirect:queueOrder - inSession(" + this.inSession + ")", orderID);
-    
 
-    try (JMSContext context = queueConnectionFactory.createContext();){	
+    Log.trace("TradeDirect:queueOrder - inSession(" + this.inSession + ")", orderID);
+
+
+    try (JMSContext context = queueConnectionFactory.createContext();){
       TextMessage message = context.createTextMessage();
 
       message.setStringProperty("command", "neworder");
@@ -502,7 +500,7 @@ public class TradeDirect implements TradeServices, Serializable {
       message.setText("neworder: orderID=" + orderID + " runtimeMode=Direct twoPhase=" + twoPhase);
 
       context.createProducer().send(tradeBrokerQueue, message);
-    } catch (Exception e) {            
+    } catch (Exception e) {
       throw e; // pass the exception
     }
   }
@@ -517,9 +515,9 @@ public class TradeDirect implements TradeServices, Serializable {
 
     try { // twoPhase
 
-    
+
       Log.trace("TradeDirect:completeOrder - inSession(" + this.inSession + ")", orderID);
-      
+
       setInGlobalTxn(!inSession && twoPhase);
       conn = getConn();
 
@@ -551,9 +549,9 @@ public class TradeDirect implements TradeServices, Serializable {
   private OrderDataBean completeOrder(Connection conn, Integer orderID) throws Exception {
     //conn = getConn();
     OrderDataBean orderData = null;
-   
+
     Log.trace("TradeDirect:completeOrderInternal - inSession(" + this.inSession + ")", orderID);
-    
+
 
     PreparedStatement stmt = getStatement(conn, getOrderSQL);
     stmt.setInt(1, orderID.intValue());
@@ -595,10 +593,10 @@ public class TradeDirect implements TradeServices, Serializable {
 
     HoldingDataBean holdingData = null;
 
-   
+
     Log.trace("TradeDirect:completeOrder--> Completing Order " + orderData.getOrderID() + "\n\t Order info: " + orderData + "\n\t Account info: "
           + accountID + "\n\t Quote info: " + quoteID);
-    
+
 
     // if (order.isBuy())
     if (orderType.compareToIgnoreCase("buy") == 0) {
@@ -629,13 +627,13 @@ public class TradeDirect implements TradeServices, Serializable {
         updateQuotePriceVolume(orderData.getSymbol(), TradeConfig.getRandomPriceChangeFactor(), orderData.getQuantity());
       }
 
-    } 
+    }
 
 
 
     Log.trace("TradeDirect:completeOrder--> Completed Order " + orderData.getOrderID() + "\n\t Order info: " + orderData + "\n\t Account info: "
           + accountID + "\n\t Quote info: " + quoteID + "\n\t Holding info: " + holdingData);
-    
+
     stmt.close();
 
     commit(conn);
@@ -653,9 +651,9 @@ public class TradeDirect implements TradeServices, Serializable {
 
     Connection conn = null;
     try {
-     
+
       Log.trace("TradeDirect:cancelOrder - inSession(" + this.inSession + ")", orderID);
-      
+
       setInGlobalTxn(!inSession && twoPhase);
       conn = getConn();
       cancelOrder(conn, orderID);
@@ -766,7 +764,7 @@ public class TradeDirect implements TradeServices, Serializable {
     Connection conn = null;
     try {
       Log.trace("TradeDirect:getOrders - inSession(" + this.inSession + ")", userID);
-      
+
 
       conn = getConn();
       PreparedStatement stmt = getStatement(conn, getOrdersByUserSQL);
@@ -805,7 +803,7 @@ public class TradeDirect implements TradeServices, Serializable {
     try {
 
       Log.trace("TradeDirect:getClosedOrders - inSession(" + this.inSession + ")", userID);
-      
+
 
       conn = getConn();
       PreparedStatement stmt = getStatement(conn, getClosedOrdersSQL);
@@ -843,7 +841,7 @@ public class TradeDirect implements TradeServices, Serializable {
     try {
 
       Log.trace("TradeDirect:createQuote - inSession(" + this.inSession + ")");
-      
+
 
       price = price.setScale(FinancialUtils.SCALE, FinancialUtils.ROUND);
       double volume = 0.0, change = 0.0;
@@ -882,9 +880,9 @@ public class TradeDirect implements TradeServices, Serializable {
     Connection conn = null;
 
     try {
-     
+
       Log.trace("TradeDirect:getQuote - inSession(" + this.inSession + ")", symbol);
-    
+
 
       conn = getConn();
       quoteData = getQuote(conn, symbol);
@@ -974,9 +972,9 @@ public class TradeDirect implements TradeServices, Serializable {
     Collection<HoldingDataBean> holdingDataBeans = new ArrayList<HoldingDataBean>();
     Connection conn = null;
     try {
-    
+
       Log.trace("TradeDirect:getHoldings - inSession(" + this.inSession + ")", userID);
-      
+
 
       conn = getConn();
       PreparedStatement stmt = getStatement(conn, getHoldingsForUserSQL);
@@ -1011,7 +1009,7 @@ public class TradeDirect implements TradeServices, Serializable {
     try {
 
       Log.trace("TradeDirect:getHolding - inSession(" + this.inSession + ")", holdingID);
-      
+
 
       conn = getConn();
       holdingData = getHoldingData(holdingID.intValue());
@@ -1038,7 +1036,7 @@ public class TradeDirect implements TradeServices, Serializable {
       try {
 
         Log.trace("TradeDirect:getAccountData - inSession(" + this.inSession + ")", userID);
-        
+
 
         conn = getConn();
         accountData = getAccountData(conn, userID);
@@ -1072,7 +1070,7 @@ public class TradeDirect implements TradeServices, Serializable {
     AccountDataBean accountData = null;
     Connection conn = null;
     try {
-     
+
       Log.trace("TradeDirect:getAccountData - inSession(" + this.inSession + ")", new Integer(accountID));
 
       conn = getConn();
@@ -1142,12 +1140,12 @@ public class TradeDirect implements TradeServices, Serializable {
     stmt.close();
     return holdingData;
   }
-  
+
   private OrderDataBean getOrderData(Connection conn, int orderID) throws Exception {
     OrderDataBean orderData = null;
-    
+
     Log.trace("TradeDirect:getOrderData(conn, " + orderID + ")");
-   
+
     PreparedStatement stmt = getStatement(conn, getOrderSQL);
     stmt.setInt(1, orderID);
     ResultSet rs = stmt.executeQuery();
@@ -1170,9 +1168,9 @@ public class TradeDirect implements TradeServices, Serializable {
     Connection conn = null;
 
     try {
-     
+
       Log.trace("TradeDirect:getAccountProfileData - inSession(" + this.inSession + ")", userID);
-      
+
 
       conn = getConn();
       accountProfileData = getAccountProfileData(conn, userID);
@@ -1196,7 +1194,7 @@ public class TradeDirect implements TradeServices, Serializable {
     stmt.close();
     return accountProfileData;
   }
-  
+
   private AccountProfileDataBean getAccountProfileData(Connection conn, Integer accountID) throws Exception {
     PreparedStatement stmt = getStatement(conn, getAccountProfileForAccountSQL);
     stmt.setInt(1, accountID.intValue());
@@ -1217,7 +1215,7 @@ public class TradeDirect implements TradeServices, Serializable {
     Connection conn = null;
 
     try {
-      
+
       Log.trace("TradeDirect:updateAccountProfileData - inSession(" + this.inSession + ")", profileData.getUserID());
 
       conn = getConn();
@@ -1348,7 +1346,7 @@ public class TradeDirect implements TradeServices, Serializable {
       }
 
       recentQuotePriceChangeList.add(quoteData);
-      
+
     } catch (Exception e) {
       Log.error("TradeDirect:updateQuotePriceVolume -- error updating quote price/volume for symbol:" + symbol);
       rollBack(conn, e);
@@ -1374,7 +1372,7 @@ public class TradeDirect implements TradeServices, Serializable {
 
   private void publishQuotePriceChange(QuoteDataBean quoteData, BigDecimal oldPrice, BigDecimal changeFactor, double sharesTraded) throws Exception {
 
-    Log.trace("TradeDirect:publishQuotePrice PUBLISHING to MDB quoteData = " + quoteData);       
+    Log.trace("TradeDirect:publishQuotePrice PUBLISHING to MDB quoteData = " + quoteData);
 
     try (JMSContext context = topicConnectionFactory.createContext();){
       TextMessage message = context.createTextMessage();
@@ -1469,7 +1467,7 @@ public class TradeDirect implements TradeServices, Serializable {
   @Override
   public void logout(String userID) throws Exception {
     Log.trace("TradeDirect:logout - inSession(" + this.inSession + ")", userID);
-    
+
     Connection conn = null;
     try {
       conn = getConn();
@@ -1499,7 +1497,7 @@ public class TradeDirect implements TradeServices, Serializable {
     AccountDataBean accountData = null;
     Connection conn = null;
     try {
-      Log.trace("TradeDirect:register - inSession(" + this.inSession + ")");  
+      Log.trace("TradeDirect:register - inSession(" + this.inSession + ")");
 
       conn = getConn();
       PreparedStatement stmt = getStatement(conn, createAccountSQL);
@@ -1602,7 +1600,7 @@ public class TradeDirect implements TradeServices, Serializable {
     Connection conn = null;
     boolean success = false;
     try {
-     
+
       Log.trace("TradeDirect:recreateDBTables");
 
       conn = getConn();
@@ -1661,7 +1659,7 @@ public class TradeDirect implements TradeServices, Serializable {
 
   private Connection getConn() throws Exception {
 
-    Connection conn = datasource.getConnection();      
+    Connection conn = datasource.getConnection();
 
     if (!this.inGlobalTxn) {
       conn.setAutoCommit(false);
@@ -1811,7 +1809,7 @@ public class TradeDirect implements TradeServices, Serializable {
   private void setInGlobalTxn(boolean inGlobalTxn) {
     this.inGlobalTxn = inGlobalTxn;
   }
-  
+
   public void setInSession(boolean inSession) {
     this.inSession = inSession;
   }
@@ -1833,5 +1831,5 @@ public class TradeDirect implements TradeServices, Serializable {
   @Override
   public double investmentReturn(double rnd1, double rnd2) {
     throw new UnsupportedOperationException();
-  }   
+  }
 }

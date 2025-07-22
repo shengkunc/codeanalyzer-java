@@ -13,6 +13,8 @@ limitations under the License.
 
 package com.ibm.cldk.utils;
 
+import static com.ibm.cldk.utils.ProjectDirectoryScanner.jarFilesStream;
+
 import com.ibm.wala.cast.java.ipa.callgraph.JavaSourceAnalysisScope;
 import com.ibm.wala.ipa.callgraph.AnalysisScope;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
@@ -28,10 +30,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.jar.JarFile;
-
 import org.apache.commons.io.FileUtils;
-
-import static com.ibm.cldk.utils.ProjectDirectoryScanner.jarFilesStream;
 
 public class ScopeUtils {
 
@@ -69,7 +68,7 @@ public class ScopeUtils {
       Log.error("JAVA_HOME is not set.");
       throw new RuntimeException("JAVA_HOME is not set.");
     }
-    
+
     String[] stdlibs = Files.walk(Paths.get(System.getenv("JAVA_HOME"), "jmods"))
         .filter(path -> path.toString().endsWith(".jmod"))
         .map(path -> path.toAbsolutePath().toString())

@@ -1,9 +1,8 @@
 package com.ibm.cldk.entities;
 
-import lombok.Data;
-
 import java.util.List;
 import java.util.stream.Collector;
+import lombok.Data;
 
 @Data
 public class InitializationBlock {

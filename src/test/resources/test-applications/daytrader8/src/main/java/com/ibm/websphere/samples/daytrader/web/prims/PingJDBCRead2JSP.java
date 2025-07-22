@@ -15,8 +15,13 @@
  */
 package com.ibm.websphere.samples.daytrader.web.prims;
 
+import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
+import com.ibm.websphere.samples.daytrader.impl.direct.TradeDirect;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeJDBC;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.io.IOException;
-
 import javax.inject.Inject;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -25,13 +30,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
-import com.ibm.websphere.samples.daytrader.impl.direct.TradeDirect;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeJDBC;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 /**
  *
@@ -50,7 +48,7 @@ public class PingJDBCRead2JSP extends HttpServlet {
   @Inject
   @TradeJDBC
   TradeServices trade;
-  
+
     private static final long serialVersionUID = 1118803761565654806L;
 
     /**
@@ -83,7 +81,7 @@ public class PingJDBCRead2JSP extends HttpServlet {
         ServletContext ctx = getServletConfig().getServletContext();
 
         try {
-          
+
             symbol = TradeConfig.rndSymbol();
 
             int iter = TradeConfig.getPrimIterations();

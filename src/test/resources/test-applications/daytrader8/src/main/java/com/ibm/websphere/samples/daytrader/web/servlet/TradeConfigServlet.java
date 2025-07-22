@@ -15,8 +15,12 @@
  */
 package com.ibm.websphere.samples.daytrader.web.servlet;
 
+import com.ibm.websphere.samples.daytrader.beans.RunStatsDataBean;
+import com.ibm.websphere.samples.daytrader.impl.direct.TradeDirectDBUtils;
+import com.ibm.websphere.samples.daytrader.interfaces.Trace;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.io.IOException;
-
 import javax.inject.Inject;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -24,13 +28,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-
-import com.ibm.websphere.samples.daytrader.beans.RunStatsDataBean;
-import com.ibm.websphere.samples.daytrader.impl.direct.TradeDirectDBUtils;
-import com.ibm.websphere.samples.daytrader.interfaces.Trace;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 
 /**
@@ -41,7 +38,7 @@ import com.ibm.websphere.samples.daytrader.util.TradeConfig;
  */
 @WebServlet(name = "TradeConfigServlet", urlPatterns = { "/config" })
 @Trace
-public class TradeConfigServlet extends HttpServlet {  
+public class TradeConfigServlet extends HttpServlet {
 
   @Inject
   private TradeDirectDBUtils dbUtils;
@@ -99,7 +96,7 @@ public class TradeConfigServlet extends HttpServlet {
     String currentConfigStr = "\n\n########## Trade configuration update. Current config:\n\n";
 
     currentConfigStr += "\t\tRuntimeMode:\t\t" + TradeConfig.getRunTimeModeNames()[TradeConfig.getRunTimeMode()] + "\n";
-    
+
     String orderProcessingModeStr = req.getParameter("OrderProcessingMode");
     if (orderProcessingModeStr != null) {
       try {

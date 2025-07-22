@@ -1,7 +1,6 @@
 package com.ibm.cldk.javaee.spring;
 
 import com.ibm.cldk.javaee.utils.interfaces.AbstractCRUDFinder;
-
 import java.util.List;
 import java.util.Optional;
 

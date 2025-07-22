@@ -13,17 +13,17 @@ limitations under the License.
 
 package com.ibm.cldk.entities;
 
+import static com.ibm.cldk.CodeAnalyzer.gson;
+
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.slicer.Statement;
 import com.ibm.wala.shrike.shrikeCT.InvalidClassFileException;
 import com.ibm.wala.ssa.IR;
 import com.ibm.wala.ssa.SSAInstruction;
-import lombok.Getter;
-import org.jgrapht.nio.Attribute;
 import java.io.Serializable;
 import java.util.Map;
-
-import static com.ibm.cldk.CodeAnalyzer.gson;
+import lombok.Getter;
+import org.jgrapht.nio.Attribute;
 
 /**
  * The type Abstract graph edge.

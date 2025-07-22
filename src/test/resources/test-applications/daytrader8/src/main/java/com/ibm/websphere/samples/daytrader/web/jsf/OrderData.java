@@ -41,7 +41,7 @@ public class OrderData {
         this.quantity = quantity;
         this.symbol = symbol;
     }
-    
+
     public OrderData(Integer orderID, String orderStatus, Date openDate, Date completeDate, BigDecimal orderFee, String orderType, double quantity,
             String symbol, BigDecimal price) {
         this.orderID = orderID;

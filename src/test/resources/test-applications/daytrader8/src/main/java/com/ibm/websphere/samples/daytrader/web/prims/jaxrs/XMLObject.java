@@ -20,7 +20,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 /**
  * with @XmlRootElement, make the XMLObject as a JAXB object
  * then add/remove any atteribute with setter& getter
- * 
+ *
  * note: please change all XMLObjects in project JAXRSJ2SEClient,JAXRSBenchService,JAXRS20Client
  * they should share the same XMLObject
  * @author alexzan
@@ -30,7 +30,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class XMLObject {
 
   private String prop0001;
-  private String prop0002;    
+  private String prop0002;
   private String prop0003;
   private String prop0004;
   private String prop0005;
@@ -46,7 +46,7 @@ public class XMLObject {
   private String prop0015;
   private String prop0016;
   private String x;
-  
+
   public String getProp0001() {
     return prop0001;
   }

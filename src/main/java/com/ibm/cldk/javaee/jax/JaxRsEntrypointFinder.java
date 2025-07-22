@@ -3,7 +3,6 @@ package com.ibm.cldk.javaee.jax;
 import com.github.javaparser.ast.body.CallableDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.ibm.cldk.javaee.utils.interfaces.AbstractEntrypointFinder;
-
 import java.util.List;
 
 @SuppressWarnings({"unchecked", "rawtypes"})

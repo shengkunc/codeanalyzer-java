@@ -15,20 +15,17 @@
  */
 package com.ibm.websphere.samples.daytrader.util;
 
+import com.ibm.websphere.samples.daytrader.interfaces.Trace;
 import java.io.Serializable;
 import java.text.MessageFormat;
 import java.util.Arrays;
-
 import javax.annotation.Priority;
-
 import javax.interceptor.AroundInvoke;
 import javax.interceptor.Interceptor;
 import javax.interceptor.InvocationContext;
 
-import com.ibm.websphere.samples.daytrader.interfaces.Trace;
 
-
-@Trace 
+@Trace
 @Interceptor
 @Priority(Interceptor.Priority.APPLICATION)
 public class TraceInterceptor implements Serializable {

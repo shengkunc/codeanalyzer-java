@@ -1,13 +1,12 @@
 package com.ibm.cldk.entities;
 
+import static com.ibm.cldk.CodeAnalyzer.gson;
+
+import java.util.Map;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.jgrapht.nio.Attribute;
 import org.jgrapht.nio.DefaultAttribute;
-
-import java.util.Map;
-
-import static com.ibm.cldk.CodeAnalyzer.gson;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -35,9 +34,6 @@ public class CallableVertex extends AbstractGraphVertex {
                 Map.entry("filePath", DefaultAttribute.createAttribute(getFilePath())),
                 Map.entry("typeDeclaration", DefaultAttribute.createAttribute(getTypeDeclaration())),
                 Map.entry("signature", DefaultAttribute.createAttribute(getSignature())),
-                Map.entry("callableDeclaration", DefaultAttribute.createAttribute(getCallableDeclaration())
-                )
-        );
+                Map.entry("callableDeclaration", DefaultAttribute.createAttribute(getCallableDeclaration())));
     }
-
 }

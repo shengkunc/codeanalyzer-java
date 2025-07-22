@@ -15,8 +15,9 @@
  */
 package com.ibm.websphere.samples.daytrader.web.servlet;
 
+import com.ibm.websphere.samples.daytrader.interfaces.Trace;
+import com.ibm.websphere.samples.daytrader.util.Diagnostics;
 import java.io.IOException;
-
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -25,13 +26,10 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.annotation.WebFilter;
 
-import com.ibm.websphere.samples.daytrader.interfaces.Trace;
-import com.ibm.websphere.samples.daytrader.util.Diagnostics;
-
 @WebFilter(filterName = "PrimFilter", urlPatterns = "/drive/*")
 @Trace
 public class PrimFilter implements Filter {
-	
+
   /**
    * @see Filter#init(FilterConfig)
    */

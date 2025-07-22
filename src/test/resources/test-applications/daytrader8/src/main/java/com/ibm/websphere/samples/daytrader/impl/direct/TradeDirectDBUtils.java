@@ -15,6 +15,14 @@
  */
 package com.ibm.websphere.samples.daytrader.impl.direct;
 
+import com.ibm.websphere.samples.daytrader.beans.RunStatsDataBean;
+import com.ibm.websphere.samples.daytrader.entities.AccountDataBean;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeDB;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeJDBC;
+import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
+import com.ibm.websphere.samples.daytrader.util.Log;
+import com.ibm.websphere.samples.daytrader.util.MDBStats;
+import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,20 +35,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-
 import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.sql.DataSource;
-
-import com.ibm.websphere.samples.daytrader.beans.RunStatsDataBean;
-import com.ibm.websphere.samples.daytrader.entities.AccountDataBean;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeDB;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeJDBC;
-import com.ibm.websphere.samples.daytrader.interfaces.TradeServices;
-import com.ibm.websphere.samples.daytrader.util.Log;
-import com.ibm.websphere.samples.daytrader.util.MDBStats;
-import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 
 /**
  * TradeBuildDB uses operations provided by the TradeApplication to (a) create the Database tables
@@ -53,12 +51,12 @@ import com.ibm.websphere.samples.daytrader.util.TradeConfig;
 public class TradeDirectDBUtils implements TradeDB {
 
   // For Wildfly - add java:/ to this resource.
-  
+
   @Resource(lookup = "jdbc/TradeDataSource")
   //@Resource(lookup = "java:/jdbc/TradeDataSource")
   private DataSource datasource;
 
-  @Inject 
+  @Inject
   @TradeJDBC
   TradeServices ts;
 

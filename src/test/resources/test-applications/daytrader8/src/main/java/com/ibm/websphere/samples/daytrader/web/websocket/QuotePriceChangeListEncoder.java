@@ -15,9 +15,9 @@
  */
 package com.ibm.websphere.samples.daytrader.web.websocket;
 
+import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
 import java.util.Iterator;
 import java.util.concurrent.CopyOnWriteArrayList;
-
 import javax.json.Json;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObjectBuilder;
@@ -25,15 +25,13 @@ import javax.websocket.EncodeException;
 import javax.websocket.Encoder;
 import javax.websocket.EndpointConfig;
 
-import com.ibm.websphere.samples.daytrader.entities.QuoteDataBean;
 
-
-/** This class takes a list of quotedata (from the RecentQuotePriceChangeList bean) and encodes 
+/** This class takes a list of quotedata (from the RecentQuotePriceChangeList bean) and encodes
    it to the json format the client (marektsummary.html) is expecting. **/
 public class QuotePriceChangeListEncoder implements Encoder.Text<CopyOnWriteArrayList<QuoteDataBean>> {
-  
+
   private static final JsonBuilderFactory jsonObjectFactory  = Json.createBuilderFactory(null);
-  
+
   public String encode(CopyOnWriteArrayList<QuoteDataBean> list) throws EncodeException {
 
     JsonObjectBuilder jObjectBuilder = jsonObjectFactory.createObjectBuilder();
@@ -44,7 +42,7 @@ public class QuotePriceChangeListEncoder implements Encoder.Text<CopyOnWriteArra
       QuoteDataBean quotedata = iterator.next();
 
       jObjectBuilder.add("change" + i + "_stock", quotedata.getSymbol());
-      jObjectBuilder.add("change" + i + "_price","$" + quotedata.getPrice());          
+      jObjectBuilder.add("change" + i + "_price","$" + quotedata.getPrice());
       jObjectBuilder.add("change" + i + "_change", quotedata.getChange());
       i++;
     }

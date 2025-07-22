@@ -15,11 +15,10 @@
  */
 package com.ibm.websphere.samples.daytrader.util;
 
+import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Iterator;
-
-import com.ibm.websphere.samples.daytrader.entities.HoldingDataBean;
 
 public class FinancialUtils {
 

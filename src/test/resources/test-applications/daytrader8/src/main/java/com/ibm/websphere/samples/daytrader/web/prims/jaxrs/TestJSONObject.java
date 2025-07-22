@@ -18,7 +18,7 @@ package com.ibm.websphere.samples.daytrader.web.prims.jaxrs;
 public class TestJSONObject {
 
   private String prop0001;
-  private String prop0002;    
+  private String prop0002;
   private String prop0003;
   private String prop0004;
   private String prop0005;
@@ -131,4 +131,3 @@ public class TestJSONObject {
     this.prop0016 = prop0016;
   }
 }
-

@@ -16,7 +16,6 @@
 package com.ibm.websphere.samples.daytrader.web.prims.cdi;
 
 import java.util.Set;
-
 import javax.enterprise.context.RequestScoped;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.BeanManager;

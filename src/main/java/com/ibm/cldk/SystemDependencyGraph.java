@@ -13,6 +13,9 @@ limitations under the License.
 
 package com.ibm.cldk;
 
+import static com.ibm.cldk.CodeAnalyzer.analysisLevel;
+import static com.ibm.cldk.utils.AnalysisUtils.*;
+
 import com.ibm.cldk.entities.*;
 import com.ibm.cldk.utils.AnalysisUtils;
 import com.ibm.cldk.utils.Log;
@@ -39,21 +42,17 @@ import com.ibm.wala.util.collections.HashMapFactory;
 import com.ibm.wala.util.graph.Graph;
 import com.ibm.wala.util.graph.GraphSlicer;
 import com.ibm.wala.util.graph.traverse.DFS;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import org.apache.commons.io.output.NullOutputStream;
-import org.jgrapht.graph.DefaultDirectedGraph;
-import org.jgrapht.nio.json.JSONExporter;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import static com.ibm.cldk.CodeAnalyzer.analysisLevel;
-import static com.ibm.cldk.utils.AnalysisUtils.*;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import org.apache.commons.io.output.NullOutputStream;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.nio.json.JSONExporter;
 
 
 @Data

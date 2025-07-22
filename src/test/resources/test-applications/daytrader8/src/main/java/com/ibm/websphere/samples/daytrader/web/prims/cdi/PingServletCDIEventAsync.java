@@ -15,9 +15,9 @@
  */
 package com.ibm.websphere.samples.daytrader.web.prims.cdi;
 
+import com.ibm.websphere.samples.daytrader.util.Log;
 import java.io.IOException;
 import java.io.PrintWriter;
-
 import javax.annotation.Priority;
 import javax.enterprise.event.ObservesAsync;
 import javax.inject.Inject;
@@ -28,8 +28,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import com.ibm.websphere.samples.daytrader.util.Log;
 
 @WebServlet("/servlet/PingServletCDIEventAsync")
 public class PingServletCDIEventAsync extends HttpServlet {
@@ -64,7 +62,7 @@ public class PingServletCDIEventAsync extends HttpServlet {
 
   /**
    * called when the class is loaded to initialize the servlet
-   * 
+   *
    * @param config
    *            ServletConfig:
    **/
@@ -87,4 +85,3 @@ public class PingServletCDIEventAsync extends HttpServlet {
     hitCount2++;
   }
 }
-
